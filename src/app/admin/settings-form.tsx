@@ -14,7 +14,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   return (
     <form action={save} className="space-y-4 px-4 py-4 sm:px-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Monthly budget" hint="Split across the two orders each month.">
+        <Field label="Monthly budget" hint="Split across the two orders each month. Applies to the next cycle.">
           <input
             name="monthlyBudget"
             inputMode="decimal"
@@ -24,7 +24,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         </Field>
         <Field
           label="Guaranteed pick cap"
-          hint="The most one person's guaranteed pick may cost."
+          hint="The most one person's guaranteed pick may cost. Takes effect right away."
         >
           <input
             name="mustHaveCap"
@@ -33,7 +33,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             className={inputStyles}
           />
         </Field>
-        <Field label="Votes per person" hint="Per cycle, one vote maximum per item.">
+        <Field label="Votes per person" hint="Per cycle, one vote maximum per item. Takes effect right away, including on a vote already open.">
           <input
             name="votesPerPerson"
             inputMode="numeric"
@@ -41,7 +41,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             className={inputStyles}
           />
         </Field>
-        <Field label="Voting opens (days before)" hint="Three gives people a working day or two.">
+        <Field label="Voting opens (days before)" hint="Three gives people a working day or two. Applies to the next cycle.">
           <input
             name="votingOpensDaysBefore"
             inputMode="numeric"
@@ -49,7 +49,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             className={inputStyles}
           />
         </Field>
-        <Field label="Flag prices older than (days)" hint="How long before a price looks stale.">
+        <Field label="Flag prices older than (days)" hint="How long before a price looks stale. Takes effect right away.">
           <input
             name="priceStaleDays"
             inputMode="numeric"

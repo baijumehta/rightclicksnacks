@@ -56,7 +56,10 @@ export async function saveSettings(
     priceStaleDays: staleDays,
   });
   refreshAll();
-  return ok("Settings saved. They apply to cycles created from here on.");
+  return ok(
+    "Saved. Votes, the pick cap and price staleness are live now; the budget " +
+      "and voting date apply to the next cycle.",
+  );
 }
 
 /* ------------------------------------------------------------------ */

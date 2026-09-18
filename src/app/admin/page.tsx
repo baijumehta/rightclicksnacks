@@ -62,7 +62,7 @@ async function Admin(myId: string) {
       <Card>
         <CardHeader
           title="Settings"
-          subtitle="Budget and voting rules. Changes apply to cycles created from here on."
+          subtitle="Votes, the pick cap and price staleness change the cycle already running. The budget and the voting date are fixed when a cycle is created, so those apply to the next one."
         />
         <SettingsForm settings={config} />
       </Card>
