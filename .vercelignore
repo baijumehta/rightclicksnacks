@@ -1,0 +1,10 @@
+# Vercel builds from the repo, so nothing local should ever be uploaded as
+# source. .env files are listed explicitly: they are gitignored, but a CLI
+# deploy from this directory would otherwise send them.
+.env
+.env.local
+.env*.local
+.vercel
+node_modules
+.next
+drizzle/meta
