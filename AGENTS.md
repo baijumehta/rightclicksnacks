@@ -37,5 +37,10 @@ cycle works and why prices are entered by hand.
 ## Checks
 
 ```bash
-npm test && npm run typecheck && npm run lint && npm run build
+npm run check
 ```
+
+That runs typecheck, lint, tests and a production build. It is one script on
+purpose: the shell here is Windows PowerShell 5.1, which has no `&&`, so
+chaining the four by hand is a parser error. npm runs scripts through cmd.exe,
+where the chaining inside the script is fine.

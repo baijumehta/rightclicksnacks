@@ -97,9 +97,14 @@ Fill in `DATABASE_URL`, then:
 
 ```bash
 npm install
-npm run db:push
-npm run db:seed
 ```
+
+```bash
+npm run setup
+```
+
+(`setup` is `db:push` then `db:seed`. PowerShell has no `&&`, so the commands
+here are one per block rather than chained.)
 
 ### 2. Microsoft sign-in
 
@@ -144,6 +149,8 @@ leaves the app stuck.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Dev server |
+| `npm run check` | Typecheck, lint, tests and build, in one go |
+| `npm run setup` | Apply the schema, then seed |
 | `npm run build` | Production build |
 | `npm test` | Unit tests for the cycle dates and the selection algorithm |
 | `npm run typecheck` | `tsc --noEmit` |
