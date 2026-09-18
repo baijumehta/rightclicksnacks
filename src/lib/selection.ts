@@ -1,0 +1,190 @@
+/**
+ * Turning a ballot into a shopping list.
+ *
+ * The whiteboard failed in two directions at once: popular snacks crowded out
+ * the one thing a particular person actually wanted, and nobody could see what
+ * any of it cost. So the selection does two passes.
+ *
+ * Pass one honours every person's single must-have pick, cheapest promise
+ * first, capped so one person cannot eat the budget. That is the "my oat milk"
+ * valve -- it does not need a single vote from anyone else.
+ *
+ * Pass two spends what is left on the items the room actually voted for, most
+ * votes first. It keeps going past an item that does not fit rather than
+ * stopping, so one $90 item near the top does not block five $12 items that
+ * would all have fitted underneath it.
+ *
+ * Nothing with zero votes and no must-have is ever bought.
+ */
+
+export interface Candidate {
+  requestId: string;
+  /** Only used to break ties deterministically, so reruns match. */
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  voteCount: number;
+  /** How many people spent their one must-have pick on this. */
+  mustHaveCount: number;
+}
+
+export type LineReason = "must_have" | "voted";
+
+export interface SelectionLine {
+  requestId: string;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  voteCount: number;
+  mustHaveCount: number;
+  reason: LineReason;
+  rank: number;
+  isFunded: boolean;
+  /** Why it missed out, for the waitlist. */
+  skippedBecause?: "no_votes" | "over_budget";
+}
+
+export interface SelectionOptions {
+  budgetCents: number;
+  /** Ceiling on the unit price of a guaranteed pick. */
+  mustHaveCapCents: number;
+}
+
+export interface SelectionResult {
+  funded: SelectionLine[];
+  waitlist: SelectionLine[];
+  totalCents: number;
+  remainingCents: number;
+  mustHaveCents: number;
+  votedCents: number;
+}
+
+const byName = (a: Candidate, b: Candidate) => a.name.localeCompare(b.name);
+
+/**
+ * Value for money, used only to break a tie between two items with the same
+ * number of votes: the cheaper one wins because it leaves room for more.
+ */
+function votesPerDollar(c: Candidate): number {
+  const total = c.unitPriceCents * c.quantity;
+  return total > 0 ? c.voteCount / total : Number.POSITIVE_INFINITY;
+}
+
+export function selectOrder(
+  candidates: readonly Candidate[],
+  { budgetCents, mustHaveCapCents }: SelectionOptions,
+): SelectionResult {
+  const funded: SelectionLine[] = [];
+  const waitlist: SelectionLine[] = [];
+  let remaining = budgetCents;
+  let mustHaveCents = 0;
+  let votedCents = 0;
+
+  /*
+   * A must-have is always a single unit -- the point is "make sure I get one",
+   * not "buy me six". Anything whose unit price is over the cap drops through
+   * to the voted pass, where it has to earn its place like everything else,
+   * rather than being thrown away.
+   */
+  const promised = candidates
+    .filter((c) => c.mustHaveCount > 0 && c.unitPriceCents <= mustHaveCapCents)
+    .sort(
+      (a, b) =>
+        b.mustHaveCount - a.mustHaveCount ||
+        a.unitPriceCents - b.unitPriceCents ||
+        b.voteCount - a.voteCount ||
+        byName(a, b),
+    );
+  const promisedIds = new Set(promised.map((c) => c.requestId));
+
+  for (const c of promised) {
+    const lineTotal = c.unitPriceCents;
+    if (lineTotal > remaining) {
+      waitlist.push(line(c, 1, lineTotal, "must_have", 0, false, "over_budget"));
+      continue;
+    }
+    remaining -= lineTotal;
+    mustHaveCents += lineTotal;
+    funded.push(line(c, 1, lineTotal, "must_have", funded.length + 1, true));
+  }
+
+  /*
+   * Everything else, most votes first. Ties go to the item that delivers more
+   * votes per dollar, then alphabetically so two identical rows never swap
+   * places between runs.
+   */
+  const contested = candidates
+    .filter((c) => !promisedIds.has(c.requestId))
+    .sort(
+      (a, b) =>
+        b.voteCount - a.voteCount ||
+        votesPerDollar(b) - votesPerDollar(a) ||
+        byName(a, b),
+    );
+
+  for (const c of contested) {
+    const lineTotal = c.unitPriceCents * c.quantity;
+    if (c.voteCount === 0) {
+      waitlist.push(line(c, c.quantity, lineTotal, "voted", 0, false, "no_votes"));
+      continue;
+    }
+    if (lineTotal > remaining) {
+      // Keep going: a cheaper item further down may still fit.
+      waitlist.push(line(c, c.quantity, lineTotal, "voted", 0, false, "over_budget"));
+      continue;
+    }
+    remaining -= lineTotal;
+    votedCents += lineTotal;
+    funded.push(line(c, c.quantity, lineTotal, "voted", funded.length + 1, true));
+  }
+
+  waitlist.forEach((l, i) => {
+    l.rank = i + 1;
+  });
+
+  return {
+    funded,
+    waitlist,
+    totalCents: budgetCents - remaining,
+    remainingCents: remaining,
+    mustHaveCents,
+    votedCents,
+  };
+}
+
+function line(
+  c: Candidate,
+  quantity: number,
+  lineTotalCents: number,
+  reason: LineReason,
+  rank: number,
+  isFunded: boolean,
+  skippedBecause?: SelectionLine["skippedBecause"],
+): SelectionLine {
+  return {
+    requestId: c.requestId,
+    name: c.name,
+    quantity,
+    unitPriceCents: c.unitPriceCents,
+    lineTotalCents,
+    voteCount: c.voteCount,
+    mustHaveCount: c.mustHaveCount,
+    reason,
+    rank,
+    isFunded,
+    ...(skippedBecause ? { skippedBecause } : {}),
+  };
+}
+
+/**
+ * What the list would look like if the vote closed right now. The ballot page
+ * runs this live so people can see their vote move the line, which is the
+ * whole point of showing prices at all.
+ */
+export function previewOrder(
+  candidates: readonly Candidate[],
+  options: SelectionOptions,
+): SelectionResult {
+  return selectOrder(candidates, options);
+}
