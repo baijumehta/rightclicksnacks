@@ -4,7 +4,7 @@ import type { MyBallotState } from "@/lib/cycle-service.ts";
 import type { SelectionResult } from "@/lib/selection.ts";
 import { formatCents, perUnitLabel } from "@/lib/money.ts";
 import { isStale } from "@/lib/suggest.ts";
-import { Badge, EmptyState, StoreBadge, buttonStyles } from "@/components/ui.tsx";
+import { Badge, EmptyState, StoreBadge, SupplyBadge, buttonStyles } from "@/components/ui.tsx";
 import { setMustHave, toggleVote, withdrawRequest } from "./actions/snacks.ts";
 
 /**
@@ -37,6 +37,10 @@ export function Ballot({
   }
 
   const voting = cycle.status === "voting";
+  // Supplies are not voted on and do not compete for the budget, so they are
+  // listed on their own below rather than ranked among the snacks.
+  const supplies = rows.filter((r) => r.kind === "supply");
+  const food = rows.filter((r) => r.kind !== "supply");
   /*
    * While the list is still being collected nothing has been decided, so the
    * cut line and the dimming stay off -- with no votes cast yet they would
@@ -50,14 +54,14 @@ export function Ballot({
   // Order the list the way the shopping list would come out, so the cut line
   // is a line you can actually see rather than a badge scattered about.
   const ordered = ranked
-    ? [...rows].sort((a, b) => {
+    ? [...food].sort((a, b) => {
         const aFunded = fundedIds.has(a.requestId);
         const bFunded = fundedIds.has(b.requestId);
         if (aFunded !== bFunded) return aFunded ? -1 : 1;
         if (aFunded) return (rankOf.get(a.requestId) ?? 0) - (rankOf.get(b.requestId) ?? 0);
         return b.voteCount - a.voteCount || a.name.localeCompare(b.name);
       })
-    : rows;
+    : food;
 
   const cutAfter = preview.funded.length;
 
@@ -77,7 +81,38 @@ export function Ballot({
           />
         </li>
       ))}
+
+      {supplies.length > 0 ? (
+        <li>
+          <SectionHeading
+            title="Supplies"
+            detail="Always bought, no vote needed, and not out of the food budget."
+          />
+        </li>
+      ) : null}
+      {supplies.map((row) => (
+        <li key={row.requestId}>
+          <Row
+            row={row}
+            cycle={cycle}
+            config={config}
+            user={user}
+            mine={mine}
+            isFunded
+            voting={false}
+          />
+        </li>
+      ))}
     </ul>
+  );
+}
+
+function SectionHeading({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="border-y border-line bg-surface-2/60 px-4 py-2 sm:px-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</p>
+      <p className="mt-0.5 text-xs text-muted">{detail}</p>
+    </div>
   );
 }
 
@@ -113,7 +148,9 @@ function Row({
   const each = perUnitLabel(row.unitPriceCents, row.unitCount);
   const iVoted = mine.votedRequestIds.has(row.requestId);
   const isMyMustHave = mine.mustHaveRequestId === row.requestId;
-  const canMustHave = row.unitPriceCents <= config.mustHaveCapCents;
+  const isSupply = row.kind === "supply";
+  // Supplies are never voted on and never anyone's guaranteed pick.
+  const canMustHave = !isSupply && row.unitPriceCents <= config.mustHaveCapCents;
 
   /*
    * A guaranteed pick always buys exactly one, so show that price rather than
@@ -137,7 +174,8 @@ function Row({
             <span className="text-sm text-muted">×{row.quantity}</span>
           ) : null}
           <StoreBadge store={row.store} />
-          {row.mustHaveCount > 0 ? (
+          {isSupply ? <SupplyBadge /> : null}
+          {!isSupply && row.mustHaveCount > 0 ? (
             <Badge tone="accent" title="Somebody's guaranteed pick this cycle">
               Must-have{row.mustHaveCount > 1 ? ` ×${row.mustHaveCount}` : ""}
             </Badge>
@@ -160,7 +198,7 @@ function Row({
       <div className="tnum w-20 text-right text-sm font-medium">{formatCents(lineTotal)}</div>
 
       <div className="no-print flex items-center gap-2">
-        {voting ? (
+        {isSupply ? null : voting ? (
           <form action={toggleVote}>
             <input type="hidden" name="requestId" value={row.requestId} />
             <button
@@ -179,6 +217,7 @@ function Row({
           </span>
         )}
 
+
         {cycle.status !== "closed" && canMustHave ? (
           <form action={setMustHave}>
             <input type="hidden" name="requestId" value={row.requestId} />
@@ -196,7 +235,8 @@ function Row({
           </form>
         ) : null}
 
-        {cycle.status === "collecting" && (row.requestedBy === user.id || user.isAdmin) ? (
+        {(cycle.status === "collecting" || isSupply) && cycle.status !== "closed" &&
+        (row.requestedBy === user.id || user.isAdmin) ? (
           <form action={withdrawRequest}>
             <input type="hidden" name="requestId" value={row.requestId} />
             <button type="submit" className={buttonStyles.ghost} title="Take this off the list">

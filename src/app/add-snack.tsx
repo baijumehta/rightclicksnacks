@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { addItem, lookupLink, type ActionResult, type LookupResult } from "./actions/snacks.ts";
-import { SNACK_CATEGORIES } from "@/lib/categories.ts";
+import { SNACK_CATEGORIES, SUPPLY_CATEGORIES } from "@/lib/categories.ts";
 import { Field, Notice, buttonStyles, inputStyles } from "@/components/ui.tsx";
 
 const EMPTY: ActionResult = { ok: true };
@@ -137,13 +137,25 @@ function SnackForm({
             <option value="other">Somewhere else</option>
           </select>
         </Field>
-        <Field label="Category">
+        <Field
+          label="Category"
+          hint="Pick a supply category for paper goods and the like: those are always bought and do not come out of the food budget."
+        >
           <select name="category" defaultValue="other" className={inputStyles}>
-            {SNACK_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
+            <optgroup label="Food">
+              {SNACK_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Supplies (separate budget)">
+              {SUPPLY_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </Field>
         <Field label="Pack size" hint="Optional: 40 ct, 2 × 32 oz.">

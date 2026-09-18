@@ -10,7 +10,7 @@ import { getOrCreateCurrentCycle } from "@/lib/cycle-service.ts";
 import { getSettings } from "@/lib/settings.ts";
 import { parseMoneyToCents } from "@/lib/money.ts";
 import { lookupProduct, storeFromUrl } from "@/lib/product-link.ts";
-import { SNACK_CATEGORIES } from "@/lib/categories.ts";
+import { ALL_CATEGORIES, kindForCategory } from "@/lib/categories.ts";
 
 /**
  * Every action re-checks who is calling and what state the cycle is in.
@@ -52,7 +52,7 @@ const itemSchema = z.object({
   name: z.string().trim().min(2, "Give it a name.").max(120),
   brand: z.string().trim().max(80).optional(),
   store: z.enum(["costco", "target", "other"]),
-  category: z.enum(SNACK_CATEGORIES),
+  category: z.enum(ALL_CATEGORIES),
   packSize: z.string().trim().max(60).optional(),
   unitCount: z.number().int().positive().max(10_000).nullable(),
   priceCents: z.number().int().positive("A price above zero, please.").max(5_000_00),
@@ -93,6 +93,9 @@ export async function addItem(_prev: ActionResult, formData: FormData): Promise<
       name: data.name,
       brand: data.brand ?? null,
       store: data.store,
+      // The category decides which pot it comes out of, so there is no
+      // separate switch to get wrong.
+      kind: kindForCategory(data.category),
       category: data.category,
       packSize: data.packSize ?? null,
       unitCount: data.unitCount,
@@ -170,12 +173,19 @@ export async function nominate(itemId: string, quantity = 1, note?: string): Pro
   const user = await requireUser();
   const cycle = await getOrCreateCurrentCycle();
   if (cycle.status === "closed") return fail("This cycle has already been ordered.");
-  if (cycle.status === "voting") {
-    return fail("Voting is open, so the list is frozen. This one will have to wait for next time.");
-  }
 
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-  if (!item || !item.isActive) return fail("That snack is not in the catalog.");
+  if (!item || !item.isActive) return fail("That item is not in the catalog.");
+
+  /*
+   * Freezing the list during voting protects the ballot -- people should not
+   * find new things to vote on halfway through. Supplies are not on the
+   * ballot and nobody votes for them, so adding napkins mid-vote changes
+   * nothing anyone has already decided.
+   */
+  if (cycle.status === "voting" && item.kind !== "supply") {
+    return fail("Voting is open, so the list is frozen. This one will have to wait for next time.");
+  }
 
   const inserted = await db
     .insert(requests)

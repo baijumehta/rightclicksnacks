@@ -10,7 +10,8 @@ import { isStale } from "@/lib/suggest.ts";
 import { Badge, Card, CardHeader, EmptyState, StoreBadge, buttonStyles } from "@/components/ui.tsx";
 import { SetupNeeded } from "@/components/setup-needed.tsx";
 import { PriceCell } from "./price-cell.tsx";
-import { archiveItem, nominateAction } from "../actions/snacks.ts";
+import { AddToList } from "./add-to-list.tsx";
+import { archiveItem } from "../actions/snacks.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -145,16 +146,17 @@ async function Catalog() {
                   <PriceCell itemId={item.id} priceCents={item.priceCents} />
 
                   <div className="no-print flex items-center gap-2">
-                    {Number(onThisBallot) > 0 ? (
-                      <Badge tone="accent">On this list</Badge>
-                    ) : cycle.status === "collecting" ? (
-                      <form action={addToCycle}>
-                        <input type="hidden" name="itemId" value={item.id} />
-                        <button type="submit" className={buttonStyles.secondary}>
-                          Add to list
-                        </button>
-                      </form>
-                    ) : null}
+                    <AddToList
+                      itemId={item.id}
+                      alreadyOn={Number(onThisBallot) > 0}
+                      disabledReason={
+                        cycle.status === "closed"
+                          ? "Cycle ordered"
+                          : cycle.status === "voting" && item.kind !== "supply"
+                            ? "List frozen for voting"
+                            : undefined
+                      }
+                    />
                     <form action={archiveItem}>
                       <input type="hidden" name="itemId" value={item.id} />
                       <button
@@ -174,9 +176,4 @@ async function Catalog() {
       )}
     </div>
   );
-}
-
-async function addToCycle(formData: FormData): Promise<void> {
-  "use server";
-  await nominateAction({ ok: true }, formData);
 }

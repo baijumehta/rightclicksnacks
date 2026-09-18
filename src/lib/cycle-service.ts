@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import {
   cycles, items, mustHaves, orderLines, requests, votes,
@@ -78,7 +78,15 @@ async function spentInMonthBefore(closesOn: IsoDate): Promise<number> {
       total: sql<number>`coalesce(sum(coalesce(${orderLines.actualCents}, ${orderLines.lineTotalCents})), 0)`,
     })
     .from(orderLines)
-    .where(and(inArray(orderLines.cycleId, ids), eq(orderLines.isFunded, true)));
+    .where(
+      and(
+        inArray(orderLines.cycleId, ids),
+        eq(orderLines.isFunded, true),
+        // Supplies come out of a different pot, so spending on napkins never
+        // reduces what the next cycle has left for food.
+        ne(orderLines.reason, "supply"),
+      ),
+    );
   return Number(row?.total ?? 0);
 }
 
@@ -202,6 +210,7 @@ export async function reopenCycle(cycleId: string): Promise<void> {
 
 export interface BallotRow extends Candidate {
   itemId: string;
+  kind: "snack" | "supply";
   brand: string | null;
   store: string;
   category: string;
@@ -223,6 +232,7 @@ export async function ballotFor(cycleId: string): Promise<BallotRow[]> {
       name: items.name,
       brand: items.brand,
       store: items.store,
+      kind: items.kind,
       category: items.category,
       packSize: items.packSize,
       unitCount: items.unitCount,
@@ -305,12 +315,16 @@ export async function recentCycles(limit = 12): Promise<Cycle[]> {
 export async function cycleTotals(cycleId: string): Promise<{
   plannedCents: number;
   actualCents: number | null;
+  suppliesCents: number;
   lineCount: number;
 }> {
+  // `filter` keeps supplies out of the food figures without a second query.
+  const supplyLine = sql`${orderLines.reason} = 'supply'`;
   const [row] = await db
     .select({
-      planned: sql<number>`coalesce(sum(${orderLines.lineTotalCents}), 0)`,
-      actual: sql<number>`sum(${orderLines.actualCents})`,
+      planned: sql<number>`coalesce(sum(${orderLines.lineTotalCents}) filter (where not ${supplyLine}), 0)`,
+      actual: sql<number>`sum(${orderLines.actualCents}) filter (where not ${supplyLine})`,
+      supplies: sql<number>`coalesce(sum(coalesce(${orderLines.actualCents}, ${orderLines.lineTotalCents})) filter (where ${supplyLine}), 0)`,
       lines: sql<number>`count(*)`,
     })
     .from(orderLines)
@@ -319,6 +333,7 @@ export async function cycleTotals(cycleId: string): Promise<{
   return {
     plannedCents: Number(row?.planned ?? 0),
     actualCents: row?.actual == null ? null : Number(row.actual),
+    suppliesCents: Number(row?.supplies ?? 0),
     lineCount: Number(row?.lines ?? 0),
   };
 }
@@ -340,7 +355,13 @@ export async function monthTotals(month: string): Promise<{
       total: sql<number>`coalesce(sum(coalesce(${orderLines.actualCents}, ${orderLines.lineTotalCents})), 0)`,
     })
     .from(orderLines)
-    .where(and(inArray(orderLines.cycleId, ids), eq(orderLines.isFunded, true)));
+    .where(
+      and(
+        inArray(orderLines.cycleId, ids),
+        eq(orderLines.isFunded, true),
+        ne(orderLines.reason, "supply"),
+      ),
+    );
 
   return {
     plannedCents: Number(row?.total ?? 0),

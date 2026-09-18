@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { signOut } from "./actions/auth.ts";
+import { ThemeToggle, themeBootScript } from "@/components/theme-toggle.tsx";
 
 export const metadata: Metadata = {
   title: "Snacks",
@@ -20,8 +21,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser().catch(() => null);
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Applies the saved theme before first paint, so a dark-mode
+            visitor never gets a white flash on the way in. */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="min-h-dvh">
+        <div className="brand-rule h-1 w-full" />
         <header className="no-print border-b border-line bg-surface">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="text-lg font-semibold tracking-tight">
@@ -45,14 +52,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     </Link>
                   ) : null}
                 </nav>
-                <form action={signOut} className="ml-auto flex items-center gap-3">
+                <div className="ml-auto flex items-center gap-3">
+                  <ThemeToggle />
                   <span className="hidden text-sm text-muted sm:inline">{user.name}</span>
-                  <button type="submit" className="text-sm text-muted hover:text-ink">
-                    Sign out
-                  </button>
-                </form>
+                  <form action={signOut}>
+                    <button type="submit" className="text-sm text-muted hover:text-ink">
+                      Sign out
+                    </button>
+                  </form>
+                </div>
               </>
-            ) : null}
+            ) : (
+              <div className="ml-auto">
+                <ThemeToggle />
+              </div>
+            )}
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">{children}</main>

@@ -54,7 +54,11 @@ async function Dashboard(userId: string) {
 
   const window = cycleWindowFor(cycle.closesOn, config.votingOpensDaysBefore);
   const daysLeft = daysUntilClose(window, now);
-  const listedCents = rows.reduce((sum, r) => sum + r.unitPriceCents * r.quantity, 0);
+  // Food and supplies are separate pots, so they are never added together.
+  const listedCents = rows
+    .filter((r) => r.kind !== "supply")
+    .reduce((sum, r) => sum + r.unitPriceCents * r.quantity, 0);
+  const supplyCount = rows.filter((r) => r.kind === "supply").length;
 
   return (
     <div className="space-y-6">
@@ -74,7 +78,7 @@ async function Dashboard(userId: string) {
               subtitle={
                 cycle.status === "voting"
                   ? `Everything above the line fits the ${formatCents(cycle.budgetCents)} budget as things stand. Your votes move it.`
-                  : `${rows.length} item${rows.length === 1 ? "" : "s"} · ${formatCents(listedCents)} if we bought all of it`
+                  : `${rows.length} item${rows.length === 1 ? "" : "s"} · ${formatCents(listedCents)} of food if we bought all of it`
               }
               action={
                 cycle.status === "closed" ? (
@@ -122,9 +126,21 @@ async function Dashboard(userId: string) {
               <BudgetBar
                 spentCents={month.plannedCents}
                 budgetCents={month.budgetCents}
-                label={`${monthName(cycle.closesOn)} in total`}
+                label={`${monthName(cycle.closesOn)} food in total`}
               />
             </div>
+
+            {preview.suppliesCents > 0 ? (
+              <div className="mt-5 flex items-baseline justify-between gap-3 border-t border-line pt-4 text-sm">
+                <span className="text-muted">
+                  Supplies
+                  <span className="block text-xs">
+                    {supplyCount} item{supplyCount === 1 ? "" : "s"}, not from the food budget
+                  </span>
+                </span>
+                <span className="tnum font-medium">{formatCents(preview.suppliesCents)}</span>
+              </div>
+            ) : null}
             {cycle.status === "collecting" && listedCents > cycle.budgetCents ? (
               <p className="mt-4 text-xs text-muted">
                 More than the budget, which is fine — the vote decides what

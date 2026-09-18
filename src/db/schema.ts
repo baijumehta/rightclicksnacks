@@ -128,6 +128,14 @@ export const cycles = pgTable(
 export type Store = "costco" | "target" | "other";
 
 /**
+ * Snacks are voted on and paid for out of the food budget. Supplies -- paper
+ * towels, napkins, cups -- are not: the office needs them whether or not
+ * anyone votes, and they come out of a different pot. They still land on the
+ * same shopping list, because it is the same trip to Costco.
+ */
+export type ItemKind = "snack" | "supply";
+
+/**
  * A snack that exists, independent of any one cycle. Added once, then
  * re-nominated cycle after cycle -- which is what makes the "we bought this
  * four times and it always scores well" suggestions possible.
@@ -139,6 +147,7 @@ export const items = pgTable(
     name: text("name").notNull(),
     brand: text("brand"),
     store: text("store").$type<Store>().notNull().default("costco"),
+    kind: text("kind").$type<ItemKind>().notNull().default("snack"),
     category: text("category").notNull().default("other"),
     /** Human-readable pack size: "40 ct", "2 x 32 oz". */
     packSize: text("pack_size"),
@@ -228,7 +237,7 @@ export const mustHaves = pgTable(
 /* ------------------------------------------------------------------ */
 
 /** Why a line made the cut -- shown on the list so the outcome is explainable. */
-export type LineReason = "must_have" | "voted";
+export type LineReason = "must_have" | "voted" | "supply";
 
 /**
  * The frozen result of closing a cycle: what to actually buy. Written once by

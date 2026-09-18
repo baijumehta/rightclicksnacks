@@ -1,55 +1,133 @@
 @import "tailwindcss";
 
 /*
- * One set of tokens, redefined for dark mode. Components only ever reference
- * the semantic names, so a palette change happens in one place.
+ * Right Click palette, taken from rclick.com:
+ *   #0098D5 cyan   #2CBAF3 light cyan   #0D273C navy
+ *   #B10E1F red    #EBF5FB / #B7E0F3 tints   #607179 slate
+ *
+ * Replace the values in the two blocks below with the Claude Design tokens
+ * when they are to hand -- nothing else in the app needs to change, because
+ * every component references the semantic names, never a hex.
+ *
+ * `@theme inline` is what makes runtime theming work: the generated utilities
+ * point at these variables rather than baking the resolved colour in, so
+ * flipping `data-theme` on <html> re-colours the page with no reload.
  */
-@theme {
-  --color-canvas: #faf9f7;
-  --color-surface: #ffffff;
-  --color-surface-2: #f4f2ef;
-  --color-line: #e5e1db;
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-accent: #c2410c;
-  --color-accent-soft: #fff1e7;
-  --color-good: #15803d;
-  --color-good-soft: #eefaf1;
-  --color-warn: #b45309;
-  --color-warn-soft: #fef6e7;
-  --color-bad: #b91c1c;
-  --color-bad-soft: #fdf0ef;
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
 
+/* ---- Light ------------------------------------------------------- */
+:root {
+  --canvas: #f3f7fa;
+  --surface: #ffffff;
+  --surface-2: #ebf5fb;
+  --line: #d5e3ec;
+  --ink: #0d273c;
+  --muted: #5d7382;
+
+  /* Text and icons. The brand cyan only reaches 3.3:1 on white, so accent
+     TEXT uses a deeper shade and the bright cyan is kept for fills. */
+  --accent: #00719f;
+  --accent-fill: #00719f;
+  --on-accent: #ffffff;
+  --accent-soft: #e4f2fa;
+
+  --good: #0f7a3d;
+  --good-soft: #e6f5ec;
+  --warn: #8a5300;
+  --warn-soft: #fdf3e2;
+  --bad: #b10e1f;
+  --bad-soft: #fdecee;
+
+  --ring: #0098d5;
+}
+
+/* ---- Dark -------------------------------------------------------- */
+/*
+ * Declared twice on purpose. The media query handles "follow the system"
+ * but is switched off the moment someone explicitly picks light; the
+ * attribute rule handles someone explicitly picking dark.
+ */
 @media (prefers-color-scheme: dark) {
-  @theme {
-    --color-canvas: #16150f;
-    --color-surface: #211f19;
-    --color-surface-2: #2b2822;
-    --color-line: #3a362e;
-    --color-ink: #f5f2ec;
-    --color-muted: #a8a29a;
-    --color-accent: #fb923c;
-    --color-accent-soft: #35231a;
-    --color-good: #4ade80;
-    --color-good-soft: #17281d;
-    --color-warn: #fbbf24;
-    --color-warn-soft: #302516;
-    --color-bad: #f87171;
-    --color-bad-soft: #301a1a;
+  :root:not([data-theme="light"]) {
+    --canvas: #081722;
+    --surface: #0d273c;
+    --surface-2: #14344d;
+    --line: #1f4763;
+    --ink: #e9f3f9;
+    --muted: #93aaba;
+
+    --accent: #2cbaf3;
+    --accent-fill: #2cbaf3;
+    --on-accent: #06202f;
+    --accent-soft: #10344b;
+
+    --good: #4ade80;
+    --good-soft: #102e1e;
+    --warn: #fbbf24;
+    --warn-soft: #332508;
+    --bad: #ff8b8b;
+    --bad-soft: #3a1416;
+
+    --ring: #2cbaf3;
   }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #081722;
+  --surface: #0d273c;
+  --surface-2: #14344d;
+  --line: #1f4763;
+  --ink: #e9f3f9;
+  --muted: #93aaba;
+
+  --accent: #2cbaf3;
+  --accent-fill: #2cbaf3;
+  --on-accent: #06202f;
+  --accent-soft: #10344b;
+
+  --good: #4ade80;
+  --good-soft: #102e1e;
+  --warn: #fbbf24;
+  --warn-soft: #332508;
+  --bad: #ff8b8b;
+  --bad-soft: #3a1416;
+
+  --ring: #2cbaf3;
 }
 
 html {
   color-scheme: light dark;
 }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
 
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -57,6 +135,27 @@ body {
 /* Tabular numerals keep money columns from jittering as totals update. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* One focus treatment everywhere, in the brand cyan. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* The brand's own accent bar, used at the top of the header. */
+.brand-rule {
+  background: linear-gradient(90deg, #0098d5 0%, #2cbaf3 55%, #b10e1f 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media print {

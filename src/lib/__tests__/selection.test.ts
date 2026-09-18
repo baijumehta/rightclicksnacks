@@ -177,3 +177,94 @@ test("the same ballot always produces the same list", () => {
   assert.deepEqual(first, ["a", "b", "c"]);
   assert.deepEqual(second, first);
 });
+
+/* ------------------------------------------------------------------ */
+/* Supplies                                                            */
+/* ------------------------------------------------------------------ */
+
+const supply = (p: Partial<Candidate> & { requestId: string }): Candidate =>
+  candidate({ kind: "supply", ...p });
+
+test("supplies are bought without any votes", () => {
+  const r = selectOrder(
+    [supply({ requestId: "napkins", unitPriceCents: 1_800, voteCount: 0 })],
+    OPTS,
+  );
+  assert.deepEqual(r.funded.map((l) => l.requestId), ["napkins"]);
+  assert.equal(r.funded[0].reason, "supply");
+  assert.deepEqual(r.waitlist, []);
+});
+
+test("supplies do not come out of the food budget", () => {
+  const r = selectOrder(
+    [
+      supply({ requestId: "paper-towels", unitPriceCents: 2_400 }),
+      candidate({ requestId: "almonds", voteCount: 5, unitPriceCents: 1_000 }),
+    ],
+    OPTS,
+  );
+  assert.equal(r.suppliesCents, 2_400, "supplies tracked on their own");
+  assert.equal(r.totalCents, 1_000, "food total excludes the supplies");
+  assert.equal(r.remainingCents, 29_000, "the full budget was available to food");
+});
+
+test("a big supply order cannot crowd a snack off the list", () => {
+  const r = selectOrder(
+    [
+      supply({ requestId: "bulk-paper", unitPriceCents: 40_000 }),
+      candidate({ requestId: "cookies", voteCount: 3, unitPriceCents: 1_200 }),
+    ],
+    { budgetCents: 5_000, mustHaveCapCents: 1_500 },
+  );
+  assert.ok(
+    r.funded.some((l) => l.requestId === "cookies"),
+    "the snack should still be funded",
+  );
+  assert.equal(r.totalCents, 1_200);
+  assert.equal(r.suppliesCents, 40_000);
+});
+
+test("supplies honour the quantity asked for", () => {
+  const r = selectOrder(
+    [supply({ requestId: "cups", quantity: 4, unitPriceCents: 900 })],
+    OPTS,
+  );
+  assert.equal(r.funded[0].quantity, 4);
+  assert.equal(r.funded[0].lineTotalCents, 3_600);
+  assert.equal(r.suppliesCents, 3_600);
+});
+
+test("supplies never become a guaranteed pick", () => {
+  // Even if somebody spends their pick on it, it stays a supply and stays
+  // outside the budget rather than eating someone's one promise.
+  const r = selectOrder(
+    [supply({ requestId: "napkins", unitPriceCents: 1_000, mustHaveCount: 1 })],
+    OPTS,
+  );
+  assert.equal(r.funded[0].reason, "supply");
+  assert.equal(r.mustHaveCents, 0);
+  assert.equal(r.totalCents, 0);
+});
+
+test("supplies sort to the top of the list, then food by votes", () => {
+  const r = selectOrder(
+    [
+      candidate({ requestId: "nuts", name: "nuts", voteCount: 9 }),
+      supply({ requestId: "cups", name: "cups" }),
+      candidate({ requestId: "bars", name: "bars", voteCount: 4 }),
+    ],
+    OPTS,
+  );
+  assert.deepEqual(r.funded.map((l) => l.requestId), ["cups", "nuts", "bars"]);
+});
+
+test("a ballot of nothing but supplies spends no food budget", () => {
+  const r = selectOrder(
+    [supply({ requestId: "a", unitPriceCents: 500 }), supply({ requestId: "b", unitPriceCents: 700 })],
+    OPTS,
+  );
+  assert.equal(r.totalCents, 0);
+  assert.equal(r.remainingCents, 30_000);
+  assert.equal(r.suppliesCents, 1_200);
+  assert.equal(r.funded.length, 2);
+});

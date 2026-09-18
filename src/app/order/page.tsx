@@ -5,7 +5,7 @@ import { db } from "@/db/index.ts";
 import { cycles, items, orderLines, requests, type Cycle } from "@/db/schema.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { formatCents } from "@/lib/money.ts";
-import { Badge, BudgetBar, Card, CardHeader, EmptyState, StoreBadge } from "@/components/ui.tsx";
+import { Badge, BudgetBar, Card, CardHeader, EmptyState, StoreBadge, SupplyBadge } from "@/components/ui.tsx";
 import { SetupNeeded } from "@/components/setup-needed.tsx";
 import { ActualCell } from "./actual-cell.tsx";
 import { CopyList } from "./copy-list.tsx";
@@ -72,8 +72,14 @@ async function ShoppingList(cycleId?: string) {
   const funded = lines.filter((l) => l.line.isFunded);
   const waitlist = lines.filter((l) => !l.line.isFunded);
 
-  const plannedCents = funded.reduce((sum, l) => sum + l.line.lineTotalCents, 0);
-  const actualCents = funded.reduce(
+  const foodLines = funded.filter((l) => l.line.reason !== "supply");
+  const supplyLines = funded.filter((l) => l.line.reason === "supply");
+  const plannedCents = foodLines.reduce((sum, l) => sum + l.line.lineTotalCents, 0);
+  const actualCents = foodLines.reduce(
+    (sum, l) => sum + (l.line.actualCents ?? l.line.lineTotalCents),
+    0,
+  );
+  const suppliesCents = supplyLines.reduce(
     (sum, l) => sum + (l.line.actualCents ?? l.line.lineTotalCents),
     0,
   );
@@ -102,7 +108,13 @@ async function ShoppingList(cycleId?: string) {
       return `${header}\n${body}`;
     })
     .join("\n\n")
-    .concat(`\n\nTotal: ${formatCents(plannedCents)} of ${formatCents(cycle.budgetCents)}`);
+    .concat(
+      `\n\nFood: ${formatCents(plannedCents)} of ${formatCents(cycle.budgetCents)}` +
+        (suppliesCents > 0
+          ? `\nSupplies: ${formatCents(suppliesCents)} (separate budget)` +
+            `\nTrip total: ${formatCents(plannedCents + suppliesCents)}`
+          : ""),
+    );
 
   return (
     <div className="space-y-6">
@@ -110,9 +122,15 @@ async function ShoppingList(cycleId?: string) {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{cycle.label} shopping list</h1>
           <p className="mt-1 text-sm text-muted">
-            {funded.length} item{funded.length === 1 ? "" : "s"} ·{" "}
+            {funded.length} item{funded.length === 1 ? "" : "s"} · food{" "}
             <span className="tnum">{formatCents(plannedCents)}</span> of{" "}
             <span className="tnum">{formatCents(cycle.budgetCents)}</span>
+            {suppliesCents > 0 ? (
+              <>
+                {" "}
+                · supplies <span className="tnum">{formatCents(suppliesCents)}</span> on top
+              </>
+            ) : null}
             {cycle.status !== "closed" ? " · not final until the cycle closes" : ""}
           </p>
         </div>
@@ -145,7 +163,9 @@ async function ShoppingList(cycleId?: string) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{item.name}</span>
-                      {line.reason === "must_have" ? (
+                      {line.reason === "supply" ? (
+                        <SupplyBadge />
+                      ) : line.reason === "must_have" ? (
                         <Badge tone="accent" title="Somebody's guaranteed pick">
                           Guaranteed pick
                         </Badge>

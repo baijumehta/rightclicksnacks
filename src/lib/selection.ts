@@ -3,7 +3,12 @@
  *
  * The whiteboard failed in two directions at once: popular snacks crowded out
  * the one thing a particular person actually wanted, and nobody could see what
- * any of it cost. So the selection does two passes.
+ * any of it cost. So the selection does three passes.
+ *
+ * Pass zero takes the supplies -- paper towels, napkins, cups. Nobody votes on
+ * whether the office should have napkins, and they are not paid for out of the
+ * food budget, so they are always bought and are counted separately. They go
+ * on the same shopping list because it is the same trip.
  *
  * Pass one honours every person's single must-have pick, cheapest promise
  * first, capped so one person cannot eat the budget. That is the "my oat milk"
@@ -26,9 +31,14 @@ export interface Candidate {
   voteCount: number;
   /** How many people spent their one must-have pick on this. */
   mustHaveCount: number;
+  /**
+   * Supplies -- paper towels, napkins, cups -- are always bought and are paid
+   * for out of a different pot, so they never compete for the food budget.
+   */
+  kind?: "snack" | "supply";
 }
 
-export type LineReason = "must_have" | "voted";
+export type LineReason = "must_have" | "voted" | "supply";
 
 export interface SelectionLine {
   requestId: string;
@@ -54,10 +64,13 @@ export interface SelectionOptions {
 export interface SelectionResult {
   funded: SelectionLine[];
   waitlist: SelectionLine[];
+  /** Food only. Supplies are not in here, and never push this over budget. */
   totalCents: number;
   remainingCents: number;
   mustHaveCents: number;
   votedCents: number;
+  /** Supplies, tracked separately and paid for out of a different pot. */
+  suppliesCents: number;
 }
 
 const byName = (a: Candidate, b: Candidate) => a.name.localeCompare(b.name);
@@ -80,6 +93,24 @@ export function selectOrder(
   let remaining = budgetCents;
   let mustHaveCents = 0;
   let votedCents = 0;
+  let suppliesCents = 0;
+
+  /*
+   * Supplies first, and unconditionally. Nobody votes on whether the office
+   * should have napkins, and their cost does not touch `remaining`, so a big
+   * paper order can never crowd a snack off the list.
+   */
+  const supplies = candidates
+    .filter((c) => c.kind === "supply")
+    .sort((a, b) => byName(a, b));
+
+  for (const c of supplies) {
+    const lineTotal = c.unitPriceCents * c.quantity;
+    suppliesCents += lineTotal;
+    funded.push(line(c, c.quantity, lineTotal, "supply", funded.length + 1, true));
+  }
+
+  const food = candidates.filter((c) => c.kind !== "supply");
 
   /*
    * A must-have is always a single unit -- the point is "make sure I get one",
@@ -87,7 +118,7 @@ export function selectOrder(
    * to the voted pass, where it has to earn its place like everything else,
    * rather than being thrown away.
    */
-  const promised = candidates
+  const promised = food
     .filter((c) => c.mustHaveCount > 0 && c.unitPriceCents <= mustHaveCapCents)
     .sort(
       (a, b) =>
@@ -114,7 +145,7 @@ export function selectOrder(
    * votes per dollar, then alphabetically so two identical rows never swap
    * places between runs.
    */
-  const contested = candidates
+  const contested = food
     .filter((c) => !promisedIds.has(c.requestId))
     .sort(
       (a, b) =>
@@ -150,6 +181,7 @@ export function selectOrder(
     remainingCents: remaining,
     mustHaveCents,
     votedCents,
+    suppliesCents,
   };
 }
 

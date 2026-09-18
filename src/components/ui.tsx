@@ -115,7 +115,7 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 export const buttonStyles = {
-  primary: `${BUTTON_BASE} bg-accent text-white hover:opacity-90`,
+  primary: `${BUTTON_BASE} bg-accent-fill text-on-accent hover:opacity-90`,
   secondary: `${BUTTON_BASE} border border-line bg-surface hover:bg-surface-2`,
   ghost: `${BUTTON_BASE} text-muted hover:bg-surface-2 hover:text-ink`,
   danger: `${BUTTON_BASE} border border-line text-bad hover:bg-bad-soft`,
@@ -158,4 +158,13 @@ export function StoreBadge({ store }: { store: string }) {
   if (store === "costco") return <Badge tone="accent">Costco</Badge>;
   if (store === "target") return <Badge tone="bad">Target</Badge>;
   return <Badge>Other</Badge>;
+}
+
+/** Marks a line that is paid for outside the food budget. */
+export function SupplyBadge() {
+  return (
+    <Badge tone="neutral" title="A supply: always bought, not from the food budget">
+      Supply
+    </Badge>
+  );
 }

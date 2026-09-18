@@ -2,6 +2,7 @@ import "./env.ts";
 import { db } from "../src/db/index.ts";
 import { items, settings } from "../src/db/schema.ts";
 import { getOrCreateCurrentCycle } from "../src/lib/cycle-service.ts";
+import { kindForCategory } from "../src/lib/categories.ts";
 
 /**
  * A starter catalog so the first cycle is not an empty page.
@@ -71,19 +72,42 @@ const CATALOG = [
   { name: "Nature Valley Granola Bars", store: "costco", category: "breakfast", packSize: "49 ct", unitCount: 49, priceCents: 1499 },
   { name: "Bagels, assorted", store: "costco", category: "breakfast", packSize: "12 ct", unitCount: 12, priceCents: 799 },
   { name: "Instant oatmeal, variety", store: "target", category: "breakfast", packSize: "32 ct", unitCount: 32, priceCents: 899 },
+
+  // Supplies: always bought, not out of the food budget.
+  { name: "Kirkland Paper Towels", store: "costco", category: "paper goods", packSize: "12 rolls", unitCount: 12, priceCents: 2499 },
+  { name: "Kirkland Bath Tissue", store: "costco", category: "paper goods", packSize: "30 rolls", unitCount: 30, priceCents: 2799 },
+  { name: "Dinner napkins", store: "costco", category: "paper goods", packSize: "600 ct", unitCount: 600, priceCents: 1899 },
+  { name: "Paper plates, 10 inch", store: "costco", category: "paper goods", packSize: "300 ct", unitCount: 300, priceCents: 2199 },
+  { name: "Hot cups with lids, 12 oz", store: "costco", category: "cups & utensils", packSize: "240 ct", unitCount: 240, priceCents: 3299 },
+  { name: "Cold cups, 16 oz", store: "costco", category: "cups & utensils", packSize: "240 ct", unitCount: 240, priceCents: 2599 },
+  { name: "Plastic cutlery, assorted", store: "costco", category: "cups & utensils", packSize: "600 ct", unitCount: 600, priceCents: 2399 },
+  { name: "Dish soap", store: "costco", category: "kitchen & cleaning", packSize: "2 x 90 oz", priceCents: 1599 },
+  { name: "Dishwasher pods", store: "costco", category: "kitchen & cleaning", packSize: "115 ct", unitCount: 115, priceCents: 1999 },
+  { name: "Disinfecting wipes", store: "costco", category: "kitchen & cleaning", packSize: "6 x 75 ct", priceCents: 2299 },
+  { name: "Kitchen trash bags, 13 gal", store: "costco", category: "kitchen & cleaning", packSize: "200 ct", unitCount: 200, priceCents: 2199 },
 ] as const;
 
 async function main() {
   await db.insert(settings).values({ id: 1 }).onConflictDoNothing();
 
-  const existing = await db.select({ id: items.id }).from(items).limit(1);
-  if (existing.length > 0) {
-    console.log("Catalog already has items; leaving it alone.");
+  /*
+   * Add-only, matched on name. Re-running this tops up a catalog that already
+   * has rows -- which is how new starter items (the supplies, say) reach an
+   * installation that was seeded before they existed -- without touching a
+   * price somebody has since corrected.
+   */
+  const existing = await db.select({ name: items.name }).from(items);
+  const known = new Set(existing.map((i) => i.name));
+  const missing = CATALOG.filter((entry) => !known.has(entry.name));
+
+  if (missing.length === 0) {
+    console.log("Catalog is already up to date; nothing to add.");
   } else {
     await db.insert(items).values(
-      CATALOG.map((entry) => ({
+      missing.map((entry) => ({
         name: entry.name,
         store: entry.store as "costco" | "target",
+        kind: kindForCategory(entry.category),
         category: entry.category,
         packSize: entry.packSize,
         unitCount: "unitCount" in entry ? entry.unitCount : null,
@@ -91,7 +115,7 @@ async function main() {
         notes: "Seeded estimate -- confirm the price before the first order.",
       })),
     );
-    console.log(`Seeded ${CATALOG.length} catalog items.`);
+    console.log(`Added ${missing.length} catalog item${missing.length === 1 ? "" : "s"}.`);
   }
 
   const cycle = await getOrCreateCurrentCycle();
