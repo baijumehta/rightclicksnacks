@@ -10,6 +10,7 @@ import { getOrCreateCurrentCycle } from "@/lib/cycle-service.ts";
 import { getSettings } from "@/lib/settings.ts";
 import { parseMoneyToCents } from "@/lib/money.ts";
 import { lookupProduct, storeFromUrl } from "@/lib/product-link.ts";
+import { readSnackFromPhoto } from "@/lib/photo-import.ts";
 import { ALL_CATEGORIES, kindForCategory } from "@/lib/categories.ts";
 
 /**
@@ -324,20 +325,46 @@ export async function setMustHave(formData: FormData): Promise<void> {
 /* Paste a link                                                        */
 /* ------------------------------------------------------------------ */
 
+/**
+ * What an importer hands the add form. A pasted link and an uploaded photo
+ * fill in different subsets of it, so the form only has to understand one
+ * shape and every field stays editable either way.
+ */
+export interface ImportDraft {
+  name: string;
+  brand: string;
+  priceText: string;
+  imageUrl: string;
+  store: string;
+  sourceUrl: string;
+  packSize: string;
+  unitCount: string;
+  /** Empty when the importer had no opinion; the form keeps its default. */
+  category: string;
+  /** True when nothing legible was found and somebody has to type one. */
+  needsPrice: boolean;
+}
+
 export interface LookupResult {
   ok: boolean;
   message?: string;
   /** See `ActionResult.token`. */
   token?: string;
-  draft?: {
-    name: string;
-    brand: string;
-    priceText: string;
-    imageUrl: string;
-    store: string;
-    sourceUrl: string;
-  };
+  draft?: ImportDraft;
 }
+
+const EMPTY_DRAFT: ImportDraft = {
+  name: "",
+  brand: "",
+  priceText: "",
+  imageUrl: "",
+  store: "costco",
+  sourceUrl: "",
+  packSize: "",
+  unitCount: "",
+  category: "",
+  needsPrice: true,
+};
 
 /**
  * Try to fill the add form in from a product URL. Whatever comes back is a
@@ -355,18 +382,60 @@ export async function lookupLink(_prev: LookupResult, formData: FormData): Promi
     };
   }
 
-  const draft = await lookupProduct(url);
+  const found = await lookupProduct(url);
   return {
-    ok: draft.missing.length === 0,
-    message: draft.note,
+    ok: found.missing.length === 0,
+    message: found.note,
     token: crypto.randomUUID(),
     draft: {
-      name: draft.name ?? "",
-      brand: draft.brand ?? "",
-      priceText: draft.priceCents != null ? (draft.priceCents / 100).toFixed(2) : "",
-      imageUrl: draft.imageUrl ?? "",
+      ...EMPTY_DRAFT,
+      name: found.name ?? "",
+      brand: found.brand ?? "",
+      priceText: found.priceCents != null ? (found.priceCents / 100).toFixed(2) : "",
+      imageUrl: found.imageUrl ?? "",
       store: storeFromUrl(url),
       sourceUrl: url,
+      needsPrice: found.priceCents == null,
+    },
+  };
+}
+
+/**
+ * Read an item off an uploaded photo or screenshot. Same contract as the link
+ * lookup: a draft to correct, never a saved row.
+ */
+export async function importPhoto(
+  _prev: LookupResult,
+  formData: FormData,
+): Promise<LookupResult> {
+  await requireUser();
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Choose a photo first.", token: crypto.randomUUID() };
+  }
+
+  const result = await readSnackFromPhoto(file);
+  if (!result.ok) {
+    return { ok: false, message: result.message, token: crypto.randomUUID() };
+  }
+
+  const { draft } = result;
+  return {
+    ok: !draft.needsPrice,
+    message:
+      draft.note ??
+      `Read that as ${draft.name || "an item"}. Check it over before saving.`,
+    token: crypto.randomUUID(),
+    draft: {
+      ...EMPTY_DRAFT,
+      name: draft.name,
+      brand: draft.brand,
+      priceText: draft.priceText,
+      store: draft.store,
+      packSize: draft.packSize,
+      unitCount: draft.unitCount,
+      category: draft.category,
+      needsPrice: draft.needsPrice,
     },
   };
 }

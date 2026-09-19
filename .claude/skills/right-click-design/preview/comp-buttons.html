@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Buttons" subtitle="Primary, secondary, navy, ghost" viewport="700x170" --><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font-sans);background:#fff;color:var(--fg-1)}
+.wrap{padding:22px 24px}
+.lbl{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-400);margin-bottom:16px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+.btn{font-family:var(--font-sans);font-weight:600;font-size:15px;border-radius:8px;padding:11px 20px;border:1.5px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .16s,border-color .16s,color .16s}
+.btn-primary{background:#0098D5;color:#fff}
+.btn-primary:hover{background:#0086BD}
+.btn-primary:active{background:#006F9E}
+.btn-secondary{background:#fff;color:#0D273C;border-color:#CBD0D7}
+.btn-secondary:hover{border-color:#9AA3AE;background:#F7F7F7}
+.btn-ghost{background:transparent;color:#0086BD}
+.btn-ghost:hover{background:#EBF5FB}
+.btn-navy{background:#0D273C;color:#fff}
+.btn-navy:hover{background:#16374F}
+.btn i{width:17px;height:17px}
+
+</style></head><body><div class="wrap">
+<div class="lbl">Buttons</div>
+<div class="row">
+<button class="btn btn-primary">Get IT Support <i data-lucide="arrow-right"></i></button>
+<button class="btn btn-secondary">Learn more</button>
+<button class="btn btn-navy">Book a consult</button>
+<button class="btn btn-ghost">Contact us</button>
+</div>
+<div class="row" style="margin-top:14px">
+<button class="btn btn-primary" style="padding:8px 16px;font-size:13px">Small</button>
+<button class="btn btn-primary"><i data-lucide="phone"></i> Call now</button>
+<button class="btn btn-primary" style="opacity:.45;cursor:not-allowed">Disabled</button>
+</div><script>lucide.createIcons();</script></div></body></html>

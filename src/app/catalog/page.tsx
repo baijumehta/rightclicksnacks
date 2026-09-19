@@ -11,6 +11,8 @@ import { Badge, Card, CardHeader, EmptyState, StoreBadge, buttonStyles } from "@
 import { SetupNeeded } from "@/components/setup-needed.tsx";
 import { PriceCell } from "./price-cell.tsx";
 import { AddToList } from "./add-to-list.tsx";
+import { AddSnack } from "../add-snack.tsx";
+import { photoImportConfigured } from "@/lib/photo-import.ts";
 import { archiveItem } from "../actions/snacks.ts";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +71,19 @@ async function Catalog() {
           it updates the current list too.
         </p>
       </div>
+
+      {cycle.status !== "closed" ? (
+        <Card>
+          <CardHeader
+            title="Add something"
+            subtitle="Photograph it, paste a link, or type it. It lands in the catalog and can go straight onto this cycle."
+          />
+          <AddSnack
+            canAddToCycle={cycle.status === "collecting"}
+            photoEnabled={photoImportConfigured()}
+          />
+        </Card>
+      ) : null}
 
       {stale.length > 0 ? (
         <Card className="border-warn/30 bg-warn-soft p-4">

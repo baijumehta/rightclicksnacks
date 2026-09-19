@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Form inputs" subtitle="Default & focused fields" viewport="700x160" --><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font-sans);background:#fff;color:var(--fg-1)}
+.wrap{padding:22px 24px}
+.lbl{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-400);margin-bottom:16px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+.field{display:flex;flex-direction:column;gap:6px;width:300px}
+label{font-size:13px;font-weight:700;color:var(--fg-1)}
+input,select{font-family:var(--font-sans);font-size:15px;padding:11px 14px;border:1.5px solid #CBD0D7;border-radius:10px;color:var(--fg-1);background:#fff;outline:none}
+input:focus{border-color:#0098D5;box-shadow:0 0 0 3px rgba(0,152,213,.35)}
+input::placeholder{color:#9AA3AE}
+.hint{font-size:12px;color:var(--fg-3)}
+
+</style></head><body><div class="wrap">
+<div class="lbl">Form inputs</div>
+<div class="row" style="align-items:flex-start;gap:24px">
+<div class="field"><label>Work email</label><input placeholder="you@company.com"></div>
+<div class="field"><label>Company</label><input value="Gouvis Engineering" style="border-color:#0098D5;box-shadow:0 0 0 3px rgba(0,152,213,.35)"><span class="hint">Focused state</span></div>
+</div><script>lucide.createIcons();</script></div></body></html>

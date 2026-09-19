@@ -15,6 +15,7 @@ import { SetupNeeded } from "@/components/setup-needed.tsx";
 import { Ballot } from "./ballot.tsx";
 import { AddSnack } from "./add-snack.tsx";
 import { nominateAction } from "./actions/snacks.ts";
+import { photoImportConfigured } from "@/lib/photo-import.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -104,7 +105,10 @@ async function Dashboard(userId: string) {
                 title="Add a snack"
                 subtitle="Anything you want. Put in what it costs so the budget stays honest."
               />
-              <AddSnack canAddToCycle={cycle.status === "collecting"} />
+              <AddSnack
+                canAddToCycle={cycle.status === "collecting"}
+                photoEnabled={photoImportConfigured()}
+              />
             </Card>
           ) : null}
         </div>

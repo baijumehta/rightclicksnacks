@@ -53,6 +53,43 @@ Two passes, in [`src/lib/selection.ts`](src/lib/selection.ts):
 Nothing with zero votes and no guaranteed pick is ever bought. Everything that
 misses out lands on a waitlist, ready for the next cycle.
 
+## Adding things
+
+Three ways, and none of them is a blank form you have to fill in:
+
+- **Photograph it.** Point a phone at the shelf tag or the packet, or drop in a
+  screenshot of a product page. Claude reads back the name, brand, pack size
+  and price. It is a draft, not a save: everything lands in the form to
+  correct, and when no price was legible it says so and leaves the box empty
+  rather than guessing. Needs `ANTHROPIC_API_KEY`; without it the photo box is
+  simply hidden and the other two still work.
+- **Paste a Costco or Target link.** Best effort — see below.
+- **Type it.**
+
+## Snacks and supplies
+
+Paper towels, napkins, cups and cleaning products are **supplies**, not food:
+
+- They are never voted on — the office needs napkins either way.
+- They do **not** come out of the food budget, and never reduce what the next
+  cycle has left to spend.
+- They still go on the same Costco list, because it is the same trip.
+- They can be added while voting is open, since they are not on the ballot.
+
+The category decides which pot an item belongs to, so there is no separate
+switch to get out of step.
+
+## Branding
+
+The palette, type and components come from the Right Click design system,
+kept at `.claude/skills/right-click-design/`. Its `colors_and_type.css` is
+copied verbatim to `src/app/rc-tokens.css`; `src/app/globals.css` maps the
+app's semantic names onto those tokens and nothing else references a raw hex.
+When the design system changes, re-copy that one file.
+
+Mulish is loaded from the design system's own variable-font files through
+`next/font`, and the logo lockups are its official ones.
+
 ## About prices
 
 **Prices are entered by hand, and that is deliberate.** Neither Costco nor

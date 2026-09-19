@@ -1,50 +1,91 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { addItem, lookupLink, type ActionResult, type LookupResult } from "./actions/snacks.ts";
+import { useActionState, useRef, useState } from "react";
+import {
+  addItem, importPhoto, lookupLink,
+  type ActionResult, type ImportDraft, type LookupResult,
+} from "./actions/snacks.ts";
 import { SNACK_CATEGORIES, SUPPLY_CATEGORIES } from "@/lib/categories.ts";
 import { Field, Notice, buttonStyles, inputStyles } from "@/components/ui.tsx";
 
 const EMPTY: ActionResult = { ok: true };
-const NO_LOOKUP: LookupResult = { ok: false };
+const NO_IMPORT: LookupResult = { ok: false };
 
-type Draft = NonNullable<LookupResult["draft"]>;
-
-const BLANK: Draft = {
+const BLANK: ImportDraft = {
   name: "",
   brand: "",
   priceText: "",
   imageUrl: "",
   store: "costco",
   sourceUrl: "",
+  packSize: "",
+  unitCount: "",
+  category: "",
+  needsPrice: true,
 };
 
 /**
- * Add a snack. The link box is a convenience: it fills the form in when the
- * retailer lets us read the page, and otherwise says so and gets out of the
- * way. Everything stays editable either way, so a blocked lookup costs a few
- * seconds rather than blocking the request.
+ * Add an item, three ways: photograph it, paste a link, or type it.
  *
- * The fields are uncontrolled and the form is remounted by `key` whenever a
- * lookup or a save completes. That is what resets it -- no effect syncing
- * server results into local state, and no half-updated form if one arrives
- * while somebody is typing.
+ * The first two are conveniences that fill the form in; neither saves
+ * anything on its own, and every field they touch stays editable. That
+ * matters because both can be wrong -- a retailer blocks the fetch, or a
+ * shelf tag in a photo belongs to the item next to it.
+ *
+ * The fields are uncontrolled and the form is remounted by `key` whenever an
+ * import or a save completes. That is what resets it: no effect syncing
+ * server results into state, and no half-updated form if one lands while
+ * somebody is typing.
  */
-export function AddSnack({ canAddToCycle }: { canAddToCycle: boolean }) {
+export function AddSnack({
+  canAddToCycle,
+  photoEnabled,
+}: {
+  canAddToCycle: boolean;
+  photoEnabled: boolean;
+}) {
   const [saved, save, saving] = useActionState(addItem, EMPTY);
-  const [looked, look, looking] = useActionState(lookupLink, NO_LOOKUP);
+  const [looked, look, looking] = useActionState(lookupLink, NO_IMPORT);
+  const [shot, readPhoto, reading] = useActionState(importPhoto, NO_IMPORT);
   const [open, setOpen] = useState(false);
+  const photoForm = useRef<HTMLFormElement>(null);
 
-  const draft = looked.draft ?? BLANK;
-  const showForm = open || Boolean(looked.draft);
+  // Whichever importer ran most recently owns the draft.
+  const latest = (shot.token ?? "") > (looked.token ?? "") ? shot : looked;
+  const draft = latest.draft ?? BLANK;
+  const showForm = open || Boolean(latest.draft);
 
   return (
     <div className="space-y-4 px-4 py-4 sm:px-5">
+      {photoEnabled ? (
+        <form ref={photoForm} action={readPhoto}>
+          <Field
+            label="Photograph it"
+            hint="A shelf tag, the packet, or a screenshot of the product page. Claude reads off the name and price so you do not have to type them."
+          >
+            <input
+              type="file"
+              name="photo"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              capture="environment"
+              disabled={reading}
+              onChange={(e) => {
+                if (e.target.files?.length) photoForm.current?.requestSubmit();
+              }}
+              className="block w-full text-sm file:mr-3 file:rounded-lg file:border-[1.5px] file:border-line file:bg-surface file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink hover:file:bg-canvas"
+            />
+          </Field>
+          {reading ? (
+            <p className="mt-2 text-sm text-muted">Reading the photo…</p>
+          ) : null}
+        </form>
+      ) : null}
+
       <form action={look} className="flex flex-wrap items-end gap-2">
         <div className="min-w-56 flex-1">
           <Field
-            label="Paste a Costco or Target link"
-            hint="Optional. Fills in what it can — Costco often refuses, so check the price."
+            label="Or paste a Costco or Target link"
+            hint="Fills in what it can — Costco often refuses, so check the price."
           >
             <input
               name="url"
@@ -59,17 +100,17 @@ export function AddSnack({ canAddToCycle }: { canAddToCycle: boolean }) {
         </button>
       </form>
 
-      {looked.message ? (
-        <Notice tone={looked.ok ? "good" : "warn"}>{looked.message}</Notice>
+      {latest.message ? (
+        <Notice tone={latest.ok ? "good" : "warn"}>{latest.message}</Notice>
       ) : null}
 
       {!showForm ? (
         <button type="button" onClick={() => setOpen(true)} className={buttonStyles.secondary}>
-          Add a snack by hand
+          Or add it by hand
         </button>
       ) : (
-        <SnackForm
-          key={`${looked.token ?? "none"}:${saved.token ?? "none"}`}
+        <ItemForm
+          key={`${latest.token ?? "none"}:${saved.token ?? "none"}`}
           draft={draft}
           save={save}
           saving={saving}
@@ -82,7 +123,7 @@ export function AddSnack({ canAddToCycle }: { canAddToCycle: boolean }) {
   );
 }
 
-function SnackForm({
+function ItemForm({
   draft,
   save,
   saving,
@@ -90,7 +131,7 @@ function SnackForm({
   canAddToCycle,
   onCancel,
 }: {
-  draft: Draft;
+  draft: ImportDraft;
   save: (formData: FormData) => void;
   saving: boolean;
   saved: ActionResult;
@@ -98,7 +139,7 @@ function SnackForm({
   onCancel: () => void;
 }) {
   return (
-    <form action={save} className="space-y-4">
+    <form action={save} className="space-y-4 border-t border-line pt-4">
       <input type="hidden" name="sourceUrl" value={draft.sourceUrl} />
       <input type="hidden" name="imageUrl" value={draft.imageUrl} />
 
@@ -120,10 +161,14 @@ function SnackForm({
             className={inputStyles}
           />
         </Field>
-        <Field label="Price" hint="What one of them costs.">
+        <Field
+          label="Price"
+          hint={draft.needsPrice ? "Nothing legible was found — put one in." : "What one of them costs."}
+        >
           <input
             name="price"
             required
+            autoFocus={draft.needsPrice && Boolean(draft.name)}
             inputMode="decimal"
             defaultValue={draft.priceText}
             placeholder="$18.99"
@@ -141,7 +186,11 @@ function SnackForm({
           label="Category"
           hint="Pick a supply category for paper goods and the like: those are always bought and do not come out of the food budget."
         >
-          <select name="category" defaultValue="other" className={inputStyles}>
+          <select
+            name="category"
+            defaultValue={draft.category || "other"}
+            className={inputStyles}
+          >
             <optgroup label="Food">
               {SNACK_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -159,10 +208,21 @@ function SnackForm({
           </select>
         </Field>
         <Field label="Pack size" hint="Optional: 40 ct, 2 × 32 oz.">
-          <input name="packSize" placeholder="40 ct" className={inputStyles} />
+          <input
+            name="packSize"
+            defaultValue={draft.packSize}
+            placeholder="40 ct"
+            className={inputStyles}
+          />
         </Field>
         <Field label="Servings per pack" hint="Optional. Shows the price per snack.">
-          <input name="unitCount" inputMode="numeric" placeholder="40" className={inputStyles} />
+          <input
+            name="unitCount"
+            inputMode="numeric"
+            defaultValue={draft.unitCount}
+            placeholder="40"
+            className={inputStyles}
+          />
         </Field>
         <Field label="Note" hint="Optional: gluten free, for the Friday thing.">
           <input name="notes" className={inputStyles} />
@@ -177,7 +237,7 @@ function SnackForm({
       ) : (
         <Notice tone="warn">
           Voting is open, so this cycle&apos;s list is frozen. New snacks go to the catalog and
-          are ready for next time.
+          are ready for next time. Supplies can still be added.
         </Notice>
       )}
 
@@ -185,7 +245,7 @@ function SnackForm({
 
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className={buttonStyles.primary}>
-          {saving ? "Saving…" : "Add snack"}
+          {saving ? "Saving…" : "Add it"}
         </button>
         <button type="button" onClick={onCancel} className={buttonStyles.ghost}>
           Cancel

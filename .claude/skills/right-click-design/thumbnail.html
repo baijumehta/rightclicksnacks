@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="colors_and_type.css" />
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 854px; }
+  .tile { display: flex; width: 1280px; height: 854px; }
+  .main { flex: 1; background: var(--blue-500); display: flex; align-items: center; justify-content: center; padding: 90px; }
+  .main img { width: 100%; max-width: 640px; height: auto; }
+  .strip { width: 150px; display: flex; flex-direction: column; }
+  .strip span { flex: 1; }
+</style>
+</head>
+<body>
+<div class="tile">
+  <div class="main"><img src="assets/right-click-lockup-white.png" alt="Right Click" /></div>
+  <div class="strip">
+    <span style="background:#FFBD59"></span>
+    <span style="background:#1E9E6A"></span>
+    <span style="background:#0D273C"></span>
+    <span style="background:#071A2B"></span>
+  </div>
+</div>
+</body>
+</html>

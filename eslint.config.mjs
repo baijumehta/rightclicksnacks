@@ -15,5 +15,15 @@ export default defineConfig([
       ],
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "drizzle/**"]),
+  // .claude/skills holds the design system's own source (UI kits, preview
+  // cards). It is reference material we copy tokens out of, not code this
+  // project builds or owns.
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "drizzle/**",
+    ".claude/**",
+  ]),
 ]);

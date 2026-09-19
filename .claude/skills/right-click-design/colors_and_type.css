@@ -1,0 +1,260 @@
+/* ============================================================
+   RIGHT CLICK — Design System Foundations
+   Colors + Typography tokens
+   Brand: Right Click, Inc. (IT Support & Cybersecurity / MSP)
+   ============================================================ */
+
+/* Mulish is the brand typeface — self-hosted from the uploaded variable fonts.
+   Arial is the documented system fallback. */
+@font-face {
+  font-family: 'Mulish';
+  src: url('fonts/Mulish-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Mulish';
+  src: url('fonts/Mulish-Italic-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 200 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* ---------- BRAND PALETTE (raw) ---------- */
+  --rc-blue:        #0098D5;   /* PRIMARY — Right Click blue */
+  --rc-white:       #FFFFFF;   /* PRIMARY */
+  --rc-navy:        #0D273C;   /* SECONDARY — deep slate navy */
+  --rc-offwhite:    #F7F7F7;   /* SECONDARY — page neutral */
+  --rc-tint:        #EBF5FB;   /* SECONDARY — pale blue wash */
+  --rc-amber:       #FFBD59;   /* TERTIARY — highlight only */
+  --rc-amber-soft:  #FFCE83;   /* TERTIARY — softer highlight */
+  --rc-mark-orange: #F36B22;   /* logo mark accent only — use sparingly */
+
+  /* ---------- BLUE SCALE (derived from #0098D5) ---------- */
+  --blue-50:  #F4FAFE;
+  --blue-100: #EBF5FB;   /* == --rc-tint */
+  --blue-200: #C9E7F6;
+  --blue-300: #9AD4EE;
+  --blue-400: #4FB6E2;
+  --blue-500: #0098D5;   /* brand */
+  --blue-600: #0086BD;   /* hover */
+  --blue-700: #006F9E;   /* pressed */
+  --blue-800: #00567A;
+
+  /* ---------- NAVY / INK SCALE ---------- */
+  --navy-950: #071A2B;   /* deepest — full-bleed dark slides/sections (use w/ glow) */
+  --navy-900: #0D273C;   /* brand secondary dark */
+  --navy-800: #16374F;
+  --navy-700: #244B66;
+  --navy-600: #3A6079;
+
+  /* ---------- NEUTRAL / GRAY SCALE ---------- */
+  --gray-0:   #FFFFFF;
+  --gray-50:  #F7F7F7;   /* == --rc-offwhite */
+  --gray-100: #EFEFF1;
+  --gray-200: #E2E4E8;
+  --gray-300: #CBD0D7;
+  --gray-400: #9AA3AE;
+  --gray-500: #6B7682;
+  --gray-600: #4C5662;
+  --gray-700: #333B44;
+  --gray-900: #0D273C;
+
+  /* ---------- SEMANTIC: TEXT ---------- */
+  --fg-1: var(--navy-900);   /* headings, primary text */
+  --fg-2: var(--gray-600);   /* body, secondary */
+  --fg-3: var(--gray-500);   /* muted, captions */
+  --fg-on-blue:  #FFFFFF;
+  --fg-on-navy:  #FFFFFF;
+  --fg-inverse:  #FFFFFF;
+  --fg-link:     var(--blue-600);
+
+  /* ---------- SEMANTIC: SURFACES ---------- */
+  --bg-1: #FFFFFF;           /* primary surface */
+  --bg-2: var(--gray-50);    /* page / section alt */
+  --bg-3: var(--rc-tint);    /* brand-tinted panel */
+  --bg-navy: var(--navy-900);/* dark sections / footer */
+  --bg-navy-deep: var(--navy-950); /* full-bleed dark canvas (pair w/ --grad-navy-glow) */
+  --surface-card: #FFFFFF;
+  /* navy canvas glow — the house dark-background recipe (deck + dark sections) */
+  --grad-navy-glow:
+      radial-gradient(1100px 700px at 82% -8%, rgba(0,152,213,0.18), transparent 60%),
+      radial-gradient(900px 600px at 8% 110%, rgba(0,152,213,0.10), transparent 55%),
+      #071A2B; /* @kind other */
+
+  /* ---------- SEMANTIC: LINES ---------- */
+  --border-1: var(--gray-200);
+  --border-2: var(--gray-300);
+  --border-strong: var(--navy-900);
+  --divider: rgba(13,39,60,0.08);
+
+  /* ---------- SEMANTIC: STATUS ---------- */
+  --success: #1E9E6A;
+  --warning: var(--rc-amber);
+  --danger:  #D7443E;
+  --info:    var(--blue-500);
+
+  /* ---------- FOCUS ---------- */
+  --focus-ring: 0 0 0 3px rgba(0,152,213,0.35);
+
+  /* ============================================================
+     TYPOGRAPHY
+     ============================================================ */
+  --font-sans: 'Mulish', Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-body: var(--font-sans);
+  --font-head: var(--font-sans);
+
+  /* weights */
+  --w-regular: 400; /* @kind font */
+  --w-medium:  500; /* @kind font */
+  --w-semi:    600; /* @kind font */
+  --w-bold:    700; /* @kind font */
+  --w-extra:   800; /* @kind font */
+  --w-black:   900; /* @kind font */
+
+  /* type scale (1.25 major-third-ish, tuned) */
+  --t-display: 64px;   /* hero */
+  --t-h1: 48px;
+  --t-h2: 36px;
+  --t-h3: 28px;
+  --t-h4: 22px;
+  --t-h5: 18px;
+  --t-body-lg: 19px;
+  --t-body: 17px;
+  --t-small: 15px;
+  --t-caption: 13px;
+  --t-label: 15px;
+
+  --lh-tight: 1.1; /* @kind other */
+  --lh-snug: 1.25; /* @kind other */
+  --lh-normal: 1.55; /* @kind other */
+  --lh-relaxed: 1.7; /* @kind other */
+
+  --tracking-tight: -0.02em; /* @kind other */
+  --tracking-normal: 0; /* @kind other */
+  --tracking-wide: 0.02em; /* @kind other */
+
+  /* ============================================================
+     SPACING / RADII / SHADOW / MOTION
+     ============================================================ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(13,39,60,0.06);
+  --shadow-sm: 0 2px 8px rgba(13,39,60,0.08);
+  --shadow-md: 0 8px 24px rgba(13,39,60,0.10);
+  --shadow-lg: 0 18px 48px rgba(13,39,60,0.14);
+  --shadow-blue: 0 10px 28px rgba(0,152,213,0.30);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --dur-fast: 120ms; /* @kind other */
+  --dur: 200ms; /* @kind other */
+  --dur-slow: 360ms; /* @kind other */
+
+  --container: 1200px; /* @kind other */
+}
+
+/* ============================================================
+   ELEMENT DEFAULTS (semantic, opt-in via .rc-prose or scope)
+   ============================================================ */
+.rc-type, .rc-prose {
+  font-family: var(--font-body);
+  color: var(--fg-2);
+  font-size: var(--t-body);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+.rc-display {
+  font-family: var(--font-head);
+  font-weight: var(--w-extra);
+  font-size: var(--t-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+h1, .rc-h1 {
+  font-family: var(--font-head);
+  font-weight: var(--w-extra);
+  font-size: var(--t-h1);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+h2, .rc-h2 {
+  font-family: var(--font-head);
+  font-weight: var(--w-bold);
+  font-size: var(--t-h2);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+}
+h3, .rc-h3 {
+  font-family: var(--font-head);
+  font-weight: var(--w-bold);
+  font-size: var(--t-h3);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+h4, .rc-h4 {
+  font-family: var(--font-head);
+  font-weight: var(--w-semi);
+  font-size: var(--t-h4);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+.rc-h5 {
+  font-family: var(--font-head);
+  font-weight: var(--w-bold);
+  font-size: var(--t-h5);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+.rc-body-lg { font-size: var(--t-body-lg); line-height: var(--lh-relaxed); color: var(--fg-2); }
+p, .rc-body { font-size: var(--t-body); line-height: var(--lh-normal); color: var(--fg-2); }
+.rc-small { font-size: var(--t-small); line-height: var(--lh-normal); color: var(--fg-2); }
+.rc-caption { font-size: var(--t-caption); line-height: var(--lh-normal); color: var(--fg-3); }
+/* small label — for naming a card or panel from the inside.
+   Sentence case, no uppercase, no letter-spacing, no leading dash.
+   Never use it above an H2 to explain a section: the H2 does that itself. */
+.rc-label {
+  font-size: 15px;
+  font-weight: var(--w-bold);
+  line-height: var(--lh-snug);
+  color: var(--navy-900);
+}
+.rc-label.blue { color: var(--blue-600); }
+.rc-label.light { color: var(--blue-300); }
+a, .rc-link { color: var(--fg-link); text-decoration: none; }
+a:hover, .rc-link:hover { text-decoration: underline; }
+
+/* inline emphasis — blue bold (the everyday "highlight a word" treatment) */
+.rc-hl { color: var(--blue-600); font-weight: var(--w-bold); }
+.rc-on-navy .rc-hl, .rc-navy .rc-hl { color: var(--blue-300); }
+
+/* highlight — tertiary amber underline, RESERVED for the single most important word/stat */
+.rc-highlight, .rc-amber {
+  background: linear-gradient(transparent 58%, var(--rc-amber-soft) 58%);
+  padding: 0 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+mark.rc-mark { background: var(--rc-amber-soft); color: var(--navy-900); padding: 0 .2em; border-radius: 3px; }

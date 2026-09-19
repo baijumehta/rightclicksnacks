@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Mulish } from "next/font/google";
+import localFont from "next/font/local";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { signOut } from "./actions/auth.ts";
 import { ThemeToggle, themeBootScript } from "@/components/theme-toggle.tsx";
 
-// Right Click's brand typeface. next/font self-hosts it, so there is no
-// request to Google and no layout shift when it swaps in.
-const mulish = Mulish({
-  subsets: ["latin"],
+// Mulish, from the design system's own variable-font files rather than a CDN
+// copy, so the app renders in exactly the weights the brand ships.
+const mulish = localFont({
+  src: [
+    { path: "./fonts/Mulish-VariableFont_wght.ttf", style: "normal", weight: "200 1000" },
+    { path: "./fonts/Mulish-Italic-VariableFont_wght.ttf", style: "italic", weight: "200 1000" },
+  ],
   variable: "--font-mulish",
   display: "swap",
 });
@@ -40,8 +44,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="brand-rule h-1 w-full" />
         <header className="no-print border-b border-line bg-surface">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Snacks
+            <Link href="/" className="flex items-center gap-2.5">
+              {/* The official lockup, light and reversed, swapped by theme. */}
+              <Image
+                src="/brand/right-click-lockup.png"
+                alt="Right Click"
+                width={116}
+                height={28}
+                priority
+                className="h-7 w-auto dark:hidden"
+              />
+              <Image
+                src="/brand/right-click-lockup-white.png"
+                alt="Right Click"
+                width={116}
+                height={28}
+                priority
+                className="hidden h-7 w-auto dark:block"
+              />
+              <span className="border-l border-line pl-2.5 text-lg font-bold tracking-tight">
+                Snacks
+              </span>
             </Link>
             {user ? (
               <>

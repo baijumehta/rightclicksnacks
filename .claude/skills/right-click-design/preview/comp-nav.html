@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Nav & stats" subtitle="Nav links + real metric stats" viewport="700x200" --><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font-sans);background:#fff;color:var(--fg-1)}
+.wrap{padding:22px 24px}
+.lbl{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-400);margin-bottom:16px}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+.nav{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:600;color:var(--fg-1)}
+.nav a{color:var(--fg-1);text-decoration:none}
+.nav a:hover{color:#0086BD}
+.nav a.active{color:#0098D5}
+.nav a.active{position:relative}
+.nav a.active::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:3px;border-radius:3px;background:#0098D5}
+.stat{display:flex;flex-direction:column}
+.stat b{font-size:30px;font-weight:800;color:#0D273C}
+.stat .u{height:4px;width:34px;background:#FFBD59;border-radius:3px;margin:4px 0 6px}
+.stat span{font-size:13px;color:var(--fg-3);font-weight:600}
+
+</style></head><body><div class="wrap">
+<div class="lbl">Nav links & stats (amber underline)</div>
+<nav class="nav"><a class="active">Services</a><a>Squad</a><a>Industries</a><a>Process</a><a>Contact</a></nav>
+<div class="row" style="margin-top:22px;gap:38px">
+<div class="stat"><b>250+</b><span class="u"></span><span>Clients supported</span></div>
+<div class="stat"><b>&gt;98%</b><span class="u"></span><span>EDR coverage</span></div>
+<div class="stat"><b>4.8/5</b><span class="u"></span><span>Average CSAT</span></div>
+<div class="stat"><b>1997</b><span class="u"></span><span>Independent since</span></div>
+</div><script>lucide.createIcons();</script></div></body></html>

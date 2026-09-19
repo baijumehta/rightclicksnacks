@@ -1,18 +1,30 @@
 @import "tailwindcss";
+@import "./rc-tokens.css";
 
 /*
- * Right Click brand colours, from the Right Click Design System on Claude
- * Design (the "Brand color spec (provided)" block):
+ * `dark:` has to follow OUR switch, not the OS alone -- otherwise a visitor
+ * who picked light on a dark machine would get dark-only styles. Mirrors the
+ * two blocks further down: the media query for "follow the system", the
+ * attribute for an explicit choice.
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) & {
+      @slot;
+    }
+  }
+  :root[data-theme="dark"] & {
+    @slot;
+  }
+}
+
+/*
+ * The app's semantic layer.
  *
- *   Primary    #0098D5  #FFFFFF
- *   Secondary  #0D273C  #F7F7F7  #EBF5FB
- *   Tertiary   #FFCE83  #FFBD59   -- highlighting only
- *   Type       Mulish, falling back to Arial
- *
- * The tertiary amber is deliberately rationed: the spec says highlighting
- * only, so it carries the "look at this" states (a stale price, an unused
- * pick) and nothing else. There is no brand red -- the bad/destructive tone
- * below is a UI semantic, not part of the palette.
+ * Every value below resolves to a token from the Right Click design system
+ * (src/app/rc-tokens.css, copied from the skill). Nothing here hard-codes a
+ * hex, which is the rule the design system asks for -- so when the system
+ * changes, re-copying that one file is the whole update.
  *
  * `@theme inline` is what makes runtime theming work: the generated utilities
  * point at these variables rather than baking the resolved colour in, so
@@ -27,9 +39,10 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fill: var(--accent-fill);
+  --color-accent-hover: var(--accent-hover);
   --color-on-accent: var(--on-accent);
   --color-accent-soft: var(--accent-soft);
-  --color-highlight: var(--highlight);
+  --color-highlight: var(--rc-amber);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
@@ -37,41 +50,52 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
 
-  /* Mulish is self-hosted by next/font; Arial is the documented fallback. */
-  --font-sans: var(--font-mulish), Arial, Helvetica, sans-serif;
+  /* Mulish, self-hosted by next/font from the design system's own files. */
+  --font-sans: var(--font-mulish), Arial, "Helvetica Neue", Helvetica, sans-serif;
+
+  --default-transition-duration: var(--dur);
+  --default-transition-timing-function: var(--ease-out);
 }
+
+/*
+ * Radii and shadows are NOT remapped here. Tailwind and the design system
+ * happen to use the same custom-property names (--radius-sm, --shadow-sm and
+ * friends), so rc-tokens.css -- imported after Tailwind -- already overrides
+ * them at :root. Re-declaring them inside @theme would make each one resolve
+ * to itself and drop out. The upshot is that `rounded-lg` and `shadow-sm`
+ * quietly become the brand's 16px radius and navy-tinted shadow, which is
+ * what we want; it is only worth knowing when one of the two moves.
+ */
 
 /* ---- Light ------------------------------------------------------- */
 :root {
-  --canvas: #f7f7f7; /* brand secondary */
-  --surface: #ffffff; /* brand primary */
-  --surface-2: #ebf5fb; /* brand secondary tint */
-  --line: #d9e6ef;
-  --ink: #0d273c; /* brand secondary navy */
-  --muted: #5d7382;
+  --canvas: var(--bg-2); /* #F7F7F7 */
+  --surface: var(--bg-1); /* #FFFFFF */
+  --surface-2: var(--bg-3); /* #EBF5FB */
+  --line: var(--border-1);
+  --ink: var(--fg-1);
+  --muted: var(--fg-2);
 
   /*
-   * #0098D5 reaches only 3.3:1 on white, which is fine for a fill and not
-   * for a label, so accent TEXT uses a darkened brand blue while the fill
-   * stays as close to the brand value as contrast allows.
+   * Buttons follow the design system's Button component: --blue-500 fill,
+   * white label, --blue-600 on hover. Accent TEXT uses --blue-600, which is
+   * the system's own --fg-link.
    */
-  --accent: #00719f;
-  --accent-fill: #00719f;
-  --on-accent: #ffffff;
-  --accent-soft: #ebf5fb;
+  --accent: var(--blue-600);
+  --accent-fill: var(--blue-500);
+  --accent-hover: var(--blue-600);
+  --on-accent: var(--fg-on-blue);
+  --accent-soft: var(--blue-100);
 
-  /* Tertiary, for highlighting only. */
-  --highlight: #ffbd59;
+  --good: var(--success);
+  --good-soft: #E9F6F0;
+  /* The amber is a highlight, not a label colour, so warn TEXT darkens it. */
+  --warn: #8A5300;
+  --warn-soft: #FFF6E8;
+  --bad: var(--danger);
+  --bad-soft: #FCEDEC;
 
-  --good: #0f7a3d;
-  --good-soft: #e6f5ec;
-  /* The highlight amber is unreadable as text, so warn text darkens it. */
-  --warn: #8a5300;
-  --warn-soft: #fff3df;
-  --bad: #b3261e;
-  --bad-soft: #fdecea;
-
-  --ring: #0098d5;
+  --ring: var(--blue-500);
 }
 
 /* ---- Dark -------------------------------------------------------- */
@@ -79,58 +103,60 @@
  * Declared twice on purpose. The media query handles "follow the system"
  * but is switched off the moment someone explicitly picks light; the
  * attribute rule handles someone explicitly picking dark.
+ *
+ * The canvas is the house dark recipe, --grad-navy-glow, with cards sitting
+ * on the brand navy above it.
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --canvas: #081722;
-    --surface: #0d273c; /* the brand navy becomes the card */
-    --surface-2: #14344d;
-    --line: #1f4763;
-    --ink: #eef5f9;
-    --muted: #93aaba;
+    --canvas: var(--navy-950);
+    --canvas-image: var(--grad-navy-glow);
+    --surface: var(--navy-900);
+    --surface-2: var(--navy-800);
+    --line: var(--navy-700);
+    --ink: #EEF5F9;
+    --muted: #9FB4C2;
 
-    /* On navy the brand blue is legible, so dark mode uses it directly. */
-    --accent: #45c2f5;
-    --accent-fill: #0098d5;
-    --on-accent: #ffffff;
-    --accent-soft: #10344b;
+    --accent: var(--blue-300);
+    --accent-fill: var(--blue-500);
+    --accent-hover: var(--blue-400);
+    --on-accent: #FFFFFF;
+    --accent-soft: #10344B;
 
-    --highlight: #ffce83;
+    --good: #4ADE80;
+    --good-soft: #102E1E;
+    --warn: var(--rc-amber-soft);
+    --warn-soft: #3A2C12;
+    --bad: #FF8B8B;
+    --bad-soft: #3A1416;
 
-    --good: #4ade80;
-    --good-soft: #102e1e;
-    --warn: #ffce83;
-    --warn-soft: #3a2c12;
-    --bad: #ff8b8b;
-    --bad-soft: #3a1416;
-
-    --ring: #45c2f5;
+    --ring: var(--blue-300);
   }
 }
 
 :root[data-theme="dark"] {
-  --canvas: #081722;
-  --surface: #0d273c;
-  --surface-2: #14344d;
-  --line: #1f4763;
-  --ink: #eef5f9;
-  --muted: #93aaba;
+  --canvas: var(--navy-950);
+  --canvas-image: var(--grad-navy-glow);
+  --surface: var(--navy-900);
+  --surface-2: var(--navy-800);
+  --line: var(--navy-700);
+  --ink: #EEF5F9;
+  --muted: #9FB4C2;
 
-  --accent: #45c2f5;
-  --accent-fill: #0098d5;
-  --on-accent: #ffffff;
-  --accent-soft: #10344b;
+  --accent: var(--blue-300);
+  --accent-fill: var(--blue-500);
+  --accent-hover: var(--blue-400);
+  --on-accent: #FFFFFF;
+  --accent-soft: #10344B;
 
-  --highlight: #ffce83;
+  --good: #4ADE80;
+  --good-soft: #102E1E;
+  --warn: var(--rc-amber-soft);
+  --warn-soft: #3A2C12;
+  --bad: #FF8B8B;
+  --bad-soft: #3A1416;
 
-  --good: #4ade80;
-  --good-soft: #102e1e;
-  --warn: #ffce83;
-  --warn-soft: #3a2c12;
-  --bad: #ff8b8b;
-  --bad-soft: #3a1416;
-
-  --ring: #45c2f5;
+  --ring: var(--blue-300);
 }
 
 html {
@@ -144,10 +170,21 @@ html {
 }
 
 body {
-  background: var(--canvas);
+  background: var(--canvas-image, var(--canvas));
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
+  /* The system's body size, so this reads like the rest of the brand. */
+  font-size: var(--t-body);
+  line-height: var(--lh-normal);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Headings carry the system's weights and tracking. */
+h1,
+h2,
+h3 {
+  letter-spacing: var(--tracking-tight);
 }
 
 /* Tabular numerals keep money columns from jittering as totals update. */
@@ -155,16 +192,32 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* One focus treatment everywhere, in the brand blue. */
+/* The system's focus ring. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: 0.5rem;
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
 }
 
 /* The header rule: brand blue into the tertiary highlight. */
 .brand-rule {
-  background: linear-gradient(90deg, #0098d5 0%, #45c2f5 62%, #ffbd59 100%);
+  background: linear-gradient(
+    90deg,
+    var(--blue-500) 0%,
+    var(--blue-300) 62%,
+    var(--rc-amber) 100%
+  );
+}
+
+/*
+ * The amber underline. The system reserves this for the single most
+ * important word or stat, so it is used once per screen at most.
+ */
+.rc-highlight {
+  background: linear-gradient(transparent 58%, var(--rc-amber-soft) 58%);
+  padding: 0 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 @media (prefers-reduced-motion: reduce) {

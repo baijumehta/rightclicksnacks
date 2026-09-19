@@ -111,18 +111,24 @@ export function BudgetBar({
   );
 }
 
+/*
+ * Buttons follow the design system's Button component: 8px radius, weight
+ * 600, a 1.5px border on the outlined variants, and hover that changes the
+ * fill rather than fading it.
+ */
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-45";
 
 export const buttonStyles = {
-  primary: `${BUTTON_BASE} bg-accent-fill text-on-accent hover:opacity-90`,
-  secondary: `${BUTTON_BASE} border border-line bg-surface hover:bg-surface-2`,
-  ghost: `${BUTTON_BASE} text-muted hover:bg-surface-2 hover:text-ink`,
-  danger: `${BUTTON_BASE} border border-line text-bad hover:bg-bad-soft`,
+  primary: `${BUTTON_BASE} border-[1.5px] border-transparent bg-accent-fill text-on-accent hover:bg-accent-hover`,
+  secondary: `${BUTTON_BASE} border-[1.5px] border-line bg-surface text-ink hover:bg-canvas`,
+  ghost: `${BUTTON_BASE} border-[1.5px] border-transparent text-accent hover:bg-accent-soft`,
+  amber: `${BUTTON_BASE} border-[1.5px] border-transparent bg-highlight text-ink hover:opacity-90`,
+  danger: `${BUTTON_BASE} border-[1.5px] border-line text-bad hover:bg-bad-soft`,
 };
 
 export const inputStyles =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20";
+  "w-full rounded-lg border-[1.5px] border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-accent";
 
 export function Field({
   label,
