@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { claudeClient, claudeConfigured } from "./anthropic-client.ts";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { ALL_CATEGORIES, kindForCategory } from "./categories.ts";
@@ -69,7 +70,8 @@ export type PhotoResult =
   | { ok: true; draft: PhotoDraft }
   | { ok: false; message: string };
 
-export const photoImportConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
+/** True when a credential of either kind is available. */
+export const photoImportConfigured = claudeConfigured;
 
 const SYSTEM = `You read a photo or screenshot of a single grocery item and return what it is.
 
@@ -84,10 +86,12 @@ Rules:
 - If it is not a grocery item at all, set isProduct false and leave the rest empty.`;
 
 export async function readSnackFromPhoto(file: File): Promise<PhotoResult> {
-  if (!photoImportConfigured()) {
+  const client = claudeClient();
+  if (!client) {
     return {
       ok: false,
-      message: "Photo import is not switched on: ANTHROPIC_API_KEY is not set.",
+      message:
+        "Photo import is not switched on: no Anthropic credential is configured.",
     };
   }
   if (file.size === 0) return { ok: false, message: "That file was empty." };
@@ -105,7 +109,6 @@ export async function readSnackFromPhoto(file: File): Promise<PhotoResult> {
   }
 
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const client = new Anthropic();
 
   let parsed: z.infer<typeof DraftSchema> | null;
   try {
@@ -174,7 +177,7 @@ function describe(error: unknown): string {
     return "Too many photos at once. Wait a moment and try again.";
   }
   if (error instanceof Anthropic.AuthenticationError) {
-    return "The Anthropic API key is not valid, so photo import is off.";
+    return "The Anthropic credential was rejected, so photo import is off.";
   }
   if (error instanceof Anthropic.APIError) {
     return `Reading the photo failed (${error.status}). Fill the form in by hand.`;
