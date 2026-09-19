@@ -180,6 +180,15 @@ function describe(error: unknown): string {
     return "The Anthropic credential was rejected, so photo import is off.";
   }
   if (error instanceof Anthropic.APIError) {
+    /*
+     * An unfunded account answers 400, not 402, with the reason only in the
+     * message body -- so it reads as a bad request unless you look. Worth
+     * naming: it is the one failure here that nobody can fix by retrying or
+     * by taking a better photo.
+     */
+    if (/credit balance is too low/i.test(error.message)) {
+      return "The Anthropic account is out of credit, so photo import is paused. Add credit in the Claude Console under Plans & Billing.";
+    }
     return `Reading the photo failed (${error.status}). Fill the form in by hand.`;
   }
   return "Reading the photo failed. Fill the form in by hand.";
