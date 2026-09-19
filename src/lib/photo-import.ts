@@ -148,9 +148,16 @@ export async function readSnackFromPhoto(file: File): Promise<PhotoResult> {
   }
 
   const needsPrice = !parsed.priceIsLegible || !parsed.priceText.trim();
+  const modelNote = parsed.note.trim();
+  /*
+   * The model usually says "no price shown" itself when there is not one, so
+   * only add our own nudge when it has not already made the point -- two
+   * sentences saying the same thing reads like a bug.
+   */
+  const saysNoPrice = /\bprice\b/i.test(modelNote);
   const notes = [
-    parsed.note.trim(),
-    needsPrice ? "No price was readable, so put one in before saving." : "",
+    modelNote,
+    needsPrice && !saysNoPrice ? "No price was readable, so put one in before saving." : "",
   ].filter(Boolean);
 
   return {
