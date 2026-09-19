@@ -275,8 +275,10 @@ function CycleHeader({
         ) : null}
       </div>
 
+      {/* The brand's tertiary amber is for highlighting, and this nudge is
+          the one thing on the page we actually want people to notice. */}
       {cycle.status !== "closed" && !mine.mustHaveRequestId ? (
-        <p className="mt-4 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">
+        <p className="mt-4 rounded-lg border-l-4 border-highlight bg-warn-soft px-3 py-2 text-sm text-warn">
           You have not used your guaranteed pick. Choose one thing under{" "}
           {formatCents(config.mustHaveCapCents)} and it gets bought whether or not anyone else
           votes for it.

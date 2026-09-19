@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
 /*
- * Right Click palette, taken from rclick.com:
- *   #0098D5 cyan   #2CBAF3 light cyan   #0D273C navy
- *   #B10E1F red    #EBF5FB / #B7E0F3 tints   #607179 slate
+ * Right Click brand colours, from the Right Click Design System on Claude
+ * Design (the "Brand color spec (provided)" block):
  *
- * Replace the values in the two blocks below with the Claude Design tokens
- * when they are to hand -- nothing else in the app needs to change, because
- * every component references the semantic names, never a hex.
+ *   Primary    #0098D5  #FFFFFF
+ *   Secondary  #0D273C  #F7F7F7  #EBF5FB
+ *   Tertiary   #FFCE83  #FFBD59   -- highlighting only
+ *   Type       Mulish, falling back to Arial
+ *
+ * The tertiary amber is deliberately rationed: the spec says highlighting
+ * only, so it carries the "look at this" states (a stale price, an unused
+ * pick) and nothing else. There is no brand red -- the bad/destructive tone
+ * below is a UI semantic, not part of the palette.
  *
  * `@theme inline` is what makes runtime theming work: the generated utilities
  * point at these variables rather than baking the resolved colour in, so
@@ -24,6 +29,7 @@
   --color-accent-fill: var(--accent-fill);
   --color-on-accent: var(--on-accent);
   --color-accent-soft: var(--accent-soft);
+  --color-highlight: var(--highlight);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
@@ -31,32 +37,39 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* Mulish is self-hosted by next/font; Arial is the documented fallback. */
+  --font-sans: var(--font-mulish), Arial, Helvetica, sans-serif;
 }
 
 /* ---- Light ------------------------------------------------------- */
 :root {
-  --canvas: #f3f7fa;
-  --surface: #ffffff;
-  --surface-2: #ebf5fb;
-  --line: #d5e3ec;
-  --ink: #0d273c;
+  --canvas: #f7f7f7; /* brand secondary */
+  --surface: #ffffff; /* brand primary */
+  --surface-2: #ebf5fb; /* brand secondary tint */
+  --line: #d9e6ef;
+  --ink: #0d273c; /* brand secondary navy */
   --muted: #5d7382;
 
-  /* Text and icons. The brand cyan only reaches 3.3:1 on white, so accent
-     TEXT uses a deeper shade and the bright cyan is kept for fills. */
+  /*
+   * #0098D5 reaches only 3.3:1 on white, which is fine for a fill and not
+   * for a label, so accent TEXT uses a darkened brand blue while the fill
+   * stays as close to the brand value as contrast allows.
+   */
   --accent: #00719f;
   --accent-fill: #00719f;
   --on-accent: #ffffff;
-  --accent-soft: #e4f2fa;
+  --accent-soft: #ebf5fb;
+
+  /* Tertiary, for highlighting only. */
+  --highlight: #ffbd59;
 
   --good: #0f7a3d;
   --good-soft: #e6f5ec;
+  /* The highlight amber is unreadable as text, so warn text darkens it. */
   --warn: #8a5300;
-  --warn-soft: #fdf3e2;
-  --bad: #b10e1f;
-  --bad-soft: #fdecee;
+  --warn-soft: #fff3df;
+  --bad: #b3261e;
+  --bad-soft: #fdecea;
 
   --ring: #0098d5;
 }
@@ -70,25 +83,28 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --canvas: #081722;
-    --surface: #0d273c;
+    --surface: #0d273c; /* the brand navy becomes the card */
     --surface-2: #14344d;
     --line: #1f4763;
-    --ink: #e9f3f9;
+    --ink: #eef5f9;
     --muted: #93aaba;
 
-    --accent: #2cbaf3;
-    --accent-fill: #2cbaf3;
-    --on-accent: #06202f;
+    /* On navy the brand blue is legible, so dark mode uses it directly. */
+    --accent: #45c2f5;
+    --accent-fill: #0098d5;
+    --on-accent: #ffffff;
     --accent-soft: #10344b;
+
+    --highlight: #ffce83;
 
     --good: #4ade80;
     --good-soft: #102e1e;
-    --warn: #fbbf24;
-    --warn-soft: #332508;
+    --warn: #ffce83;
+    --warn-soft: #3a2c12;
     --bad: #ff8b8b;
     --bad-soft: #3a1416;
 
-    --ring: #2cbaf3;
+    --ring: #45c2f5;
   }
 }
 
@@ -97,22 +113,24 @@
   --surface: #0d273c;
   --surface-2: #14344d;
   --line: #1f4763;
-  --ink: #e9f3f9;
+  --ink: #eef5f9;
   --muted: #93aaba;
 
-  --accent: #2cbaf3;
-  --accent-fill: #2cbaf3;
-  --on-accent: #06202f;
+  --accent: #45c2f5;
+  --accent-fill: #0098d5;
+  --on-accent: #ffffff;
   --accent-soft: #10344b;
+
+  --highlight: #ffce83;
 
   --good: #4ade80;
   --good-soft: #102e1e;
-  --warn: #fbbf24;
-  --warn-soft: #332508;
+  --warn: #ffce83;
+  --warn-soft: #3a2c12;
   --bad: #ff8b8b;
   --bad-soft: #3a1416;
 
-  --ring: #2cbaf3;
+  --ring: #45c2f5;
 }
 
 html {
@@ -137,16 +155,16 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* One focus treatment everywhere, in the brand cyan. */
+/* One focus treatment everywhere, in the brand blue. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
 
-/* The brand's own accent bar, used at the top of the header. */
+/* The header rule: brand blue into the tertiary highlight. */
 .brand-rule {
-  background: linear-gradient(90deg, #0098d5 0%, #2cbaf3 55%, #b10e1f 100%);
+  background: linear-gradient(90deg, #0098d5 0%, #45c2f5 62%, #ffbd59 100%);
 }
 
 @media (prefers-reduced-motion: reduce) {

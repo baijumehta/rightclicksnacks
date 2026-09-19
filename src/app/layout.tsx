@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import { Mulish } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { signOut } from "./actions/auth.ts";
 import { ThemeToggle, themeBootScript } from "@/components/theme-toggle.tsx";
+
+// Right Click's brand typeface. next/font self-hosts it, so there is no
+// request to Google and no layout shift when it swaps in.
+const mulish = Mulish({
+  subsets: ["latin"],
+  variable: "--font-mulish",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Snacks",
@@ -21,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getCurrentUser().catch(() => null);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={mulish.variable} suppressHydrationWarning>
       <head>
         {/* Applies the saved theme before first paint, so a dark-mode
             visitor never gets a white flash on the way in. */}
