@@ -150,6 +150,11 @@ export async function rollCycles(day?: IsoDate): Promise<RollResult> {
   return result;
 }
 
+/** The guaranteed-pick allowance for a cycle, in cents. */
+export function poolCentsFor(budgetCents: number, percent: number): number {
+  return Math.floor((budgetCents * Math.min(Math.max(percent, 0), 100)) / 100);
+}
+
 /* ------------------------------------------------------------------ */
 /* Closing                                                             */
 /* ------------------------------------------------------------------ */
@@ -168,6 +173,7 @@ export async function closeCycle(cycleId: string): Promise<SelectionResult> {
   const result = selectOrder(candidates, {
     budgetCents: cycle.budgetCents,
     mustHaveCapCents: config.mustHaveCapCents,
+    mustHavePoolCents: poolCentsFor(cycle.budgetCents, config.mustHavePoolPercent),
   });
 
   const rows = [...result.funded, ...result.waitlist].map((line) => ({
@@ -265,6 +271,7 @@ export async function previewFor(cycle: Cycle): Promise<SelectionResult> {
   return selectOrder(ballot, {
     budgetCents: cycle.budgetCents,
     mustHaveCapCents: config.mustHaveCapCents,
+    mustHavePoolCents: poolCentsFor(cycle.budgetCents, config.mustHavePoolPercent),
   });
 }
 

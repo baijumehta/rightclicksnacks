@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth.ts";
 import {
-  ballotFor, getOrCreateCurrentCycle, monthTotals, myBallotState, previewFor,
+  ballotFor, getOrCreateCurrentCycle, monthTotals, myBallotState, poolCentsFor, previewFor,
 } from "@/lib/cycle-service.ts";
 import { budgetMonth, cycleWindowFor, daysUntilClose, today } from "@/lib/cycles.ts";
 import { getSettings, OFFICE_TIMEZONE } from "@/lib/settings.ts";
@@ -60,6 +60,7 @@ async function Dashboard(userId: string) {
     .filter((r) => r.kind !== "supply")
     .reduce((sum, r) => sum + r.unitPriceCents * r.quantity, 0);
   const supplyCount = rows.filter((r) => r.kind === "supply").length;
+  const poolCents = poolCentsFor(cycle.budgetCents, config.mustHavePoolPercent);
 
   return (
     <div className="space-y-6">
@@ -145,6 +146,27 @@ async function Dashboard(userId: string) {
                 <span className="tnum font-medium">{formatCents(preview.suppliesCents)}</span>
               </div>
             ) : null}
+            {/*
+              * The guaranteed-pick allowance, shown because it is a second
+              * limit people can hit without noticing: the picks are bought
+              * before the vote is counted, so a full pool quietly shrinks
+              * what the vote gets to decide.
+              */}
+            {poolCents > 0 ? (
+              <div className="mt-5 border-t border-line pt-4">
+                <BudgetBar
+                  spentCents={preview.mustHaveCents}
+                  budgetCents={poolCents}
+                  label="Guaranteed picks"
+                />
+                <p className="mt-1 text-xs text-muted">
+                  Picks are capped at {formatCents(config.mustHaveCapCents)} each and{" "}
+                  {formatCents(poolCents)} together, so they cannot swallow the order.
+                  Anything past that competes on votes.
+                </p>
+              </div>
+            ) : null}
+
             {cycle.status === "collecting" && listedCents > cycle.budgetCents ? (
               <p className="mt-4 text-xs text-muted">
                 More than the budget, which is fine — the vote decides what

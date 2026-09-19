@@ -72,6 +72,15 @@ export const settings = pgTable("settings", {
    * entirely, so long as it is cheap.
    */
   mustHaveCapCents: integer("must_have_cap_cents").notNull().default(1_500),
+  /**
+   * What every guaranteed pick may take TOGETHER, as a percent of the cycle.
+   *
+   * The per-person cap does not bound this on its own: fifteen people each
+   * picking at a $15 cap would reach $225 of a $300 cycle, leaving almost
+   * nothing for the vote. Stored as a percent rather than an amount so it
+   * keeps up with the budget instead of quietly drifting out of step.
+   */
+  mustHavePoolPercent: integer("must_have_pool_percent").notNull().default(40),
   /** Voting opens this many days before the cycle closes. */
   votingOpensDaysBefore: integer("voting_opens_days_before").notNull().default(3),
   /** Warn that a price needs re-checking after this many days. */

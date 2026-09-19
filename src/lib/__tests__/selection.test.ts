@@ -93,6 +93,7 @@ test("must-haves many people picked come first", () => {
   );
   assert.deepEqual(r.funded.map((l) => l.requestId), ["seltzer"]);
   assert.equal(r.waitlist[0].requestId, "gf-crackers");
+  // It lost its guarantee to the budget; it never lacked a supporter.
   assert.equal(r.waitlist[0].skippedBecause, "over_budget");
 });
 
@@ -267,4 +268,117 @@ test("a ballot of nothing but supplies spends no food budget", () => {
   assert.equal(r.remainingCents, 30_000);
   assert.equal(r.suppliesCents, 1_200);
   assert.equal(r.funded.length, 2);
+});
+
+/* ------------------------------------------------------------------ */
+/* The guaranteed-pick pool                                            */
+/* ------------------------------------------------------------------ */
+
+test("fifteen people at the cap would swallow the budget without a pool", () => {
+  // The office is ~15 people and the cap is $15, so the promises alone can
+  // reach $225 of a $300 cycle. This is the case the pool exists to stop.
+  const everyone = Array.from({ length: 15 }, (_, i) =>
+    candidate({
+      requestId: `pick-${i}`,
+      name: `pick-${String(i).padStart(2, "0")}`,
+      unitPriceCents: 1_500,
+      mustHaveCount: 1,
+    }),
+  );
+
+  const unbounded = selectOrder(everyone, OPTS);
+  assert.equal(unbounded.mustHaveCents, 22_500, "unbounded, promises take $225");
+
+  const bounded = selectOrder(everyone, { ...OPTS, mustHavePoolCents: 12_000 });
+  assert.ok(
+    bounded.mustHaveCents <= 12_000,
+    `promises should respect the pool, spent ${bounded.mustHaveCents}`,
+  );
+  assert.equal(bounded.mustHaveCents, 12_000);
+  assert.equal(bounded.funded.filter((l) => l.reason === "must_have").length, 8);
+});
+
+test("a pick that misses the pool competes on votes instead of vanishing", () => {
+  const r = selectOrder(
+    [
+      // No votes, so the guarantee is the only way this one gets bought.
+      candidate({ requestId: "first", name: "a", unitPriceCents: 1_000, mustHaveCount: 1 }),
+      // Popular, so it can afford to lose the guarantee and win the vote.
+      candidate({
+        requestId: "second",
+        name: "b",
+        unitPriceCents: 1_000,
+        mustHaveCount: 1,
+        voteCount: 4,
+      }),
+    ],
+    { ...OPTS, mustHavePoolCents: 1_000 },
+  );
+
+  const second = r.funded.find((l) => l.requestId === "second");
+  assert.ok(second, "it should still be bought");
+  assert.equal(second.reason, "voted", "but on votes, not as a promise");
+  assert.equal(r.mustHaveCents, 1_000);
+  assert.equal(r.votedCents, 1_000);
+});
+
+test("a pick that misses the pool and has no votes says the pool ran out", () => {
+  const r = selectOrder(
+    [
+      candidate({ requestId: "first", name: "a", unitPriceCents: 1_000, mustHaveCount: 1 }),
+      candidate({ requestId: "second", name: "b", unitPriceCents: 1_000, mustHaveCount: 1 }),
+    ],
+    { ...OPTS, mustHavePoolCents: 1_000 },
+  );
+  assert.deepEqual(r.funded.map((l) => l.requestId), ["first"]);
+  assert.equal(r.waitlist[0].requestId, "second");
+  // Not "no votes": somebody did ask for it, the allowance just ran out.
+  assert.equal(r.waitlist[0].skippedBecause, "pool_full");
+});
+
+test("the pool funds the cheapest promises first, so more people get one", () => {
+  const r = selectOrder(
+    [
+      candidate({ requestId: "pricey", name: "pricey", unitPriceCents: 1_400, mustHaveCount: 1 }),
+      candidate({ requestId: "mid", name: "mid", unitPriceCents: 900, mustHaveCount: 1 }),
+      candidate({ requestId: "cheap", name: "cheap", unitPriceCents: 500, mustHaveCount: 1 }),
+    ],
+    { ...OPTS, mustHavePoolCents: 1_500 },
+  );
+  const promises = r.funded.filter((l) => l.reason === "must_have");
+  assert.deepEqual(promises.map((l) => l.requestId), ["cheap", "mid"]);
+});
+
+test("the pool never exceeds the budget it comes out of", () => {
+  const r = selectOrder(
+    [candidate({ requestId: "a", unitPriceCents: 1_000, mustHaveCount: 1 })],
+    { budgetCents: 800, mustHaveCapCents: 1_500, mustHavePoolCents: 99_000 },
+  );
+  assert.equal(r.mustHaveCents, 0, "it does not fit the $8 budget");
+  assert.equal(r.totalCents, 0);
+});
+
+test("unused pool money goes back to the vote", () => {
+  const r = selectOrder(
+    [
+      candidate({ requestId: "promise", name: "promise", unitPriceCents: 500, mustHaveCount: 1 }),
+      candidate({ requestId: "voted", name: "voted", voteCount: 6, unitPriceCents: 28_000 }),
+    ],
+    { budgetCents: 30_000, mustHaveCapCents: 1_500, mustHavePoolCents: 12_000 },
+  );
+  // Only $5 of the $120 pool was claimed, so the vote still had $295.
+  assert.equal(r.mustHaveCents, 500);
+  assert.equal(r.votedCents, 28_000);
+  assert.equal(r.totalCents, 28_500);
+});
+
+test("no pool set means no pool limit", () => {
+  const r = selectOrder(
+    [
+      candidate({ requestId: "a", name: "a", unitPriceCents: 1_500, mustHaveCount: 1 }),
+      candidate({ requestId: "b", name: "b", unitPriceCents: 1_500, mustHaveCount: 1 }),
+    ],
+    OPTS,
+  );
+  assert.equal(r.mustHaveCents, 3_000);
 });

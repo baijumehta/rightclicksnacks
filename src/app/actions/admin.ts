@@ -35,6 +35,7 @@ export async function saveSettings(
   const votes = Number(formData.get("votesPerPerson") ?? 0);
   const leadDays = Number(formData.get("votingOpensDaysBefore") ?? 0);
   const staleDays = Number(formData.get("priceStaleDays") ?? 0);
+  const poolPercent = Number(formData.get("mustHavePoolPercent") ?? 0);
 
   if (monthly == null || monthly <= 0) return fail("The monthly budget needs to be a number.");
   if (cap == null || cap <= 0) return fail("The must-have cap needs to be a number.");
@@ -47,6 +48,9 @@ export async function saveSettings(
   if (!Number.isInteger(staleDays) || staleDays < 7 || staleDays > 365) {
     return fail("Price staleness should be between 7 and 365 days.");
   }
+  if (!Number.isInteger(poolPercent) || poolPercent < 0 || poolPercent > 100) {
+    return fail("The guaranteed-pick allowance should be between 0 and 100 percent.");
+  }
 
   await updateSettings({
     monthlyBudgetCents: monthly,
@@ -54,6 +58,7 @@ export async function saveSettings(
     votesPerPerson: votes,
     votingOpensDaysBefore: leadDays,
     priceStaleDays: staleDays,
+    mustHavePoolPercent: poolPercent,
   });
   refreshAll();
   return ok(

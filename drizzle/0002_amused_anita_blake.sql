@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "must_have_pool_percent" integer DEFAULT 40 NOT NULL;

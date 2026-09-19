@@ -33,6 +33,17 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             className={inputStyles}
           />
         </Field>
+        <Field
+          label="All guaranteed picks together (% of the order)"
+          hint="Stops the picks swallowing the order. At 40% of a $300 cycle that is $120, so roughly eight picks. Anything past it competes on votes instead. Takes effect right away."
+        >
+          <input
+            name="mustHavePoolPercent"
+            inputMode="numeric"
+            defaultValue={settings.mustHavePoolPercent}
+            className={inputStyles}
+          />
+        </Field>
         <Field label="Votes per person" hint="Per cycle, one vote maximum per item. Takes effect right away, including on a vote already open.">
           <input
             name="votesPerPerson"

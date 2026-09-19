@@ -52,13 +52,23 @@ export interface SelectionLine {
   rank: number;
   isFunded: boolean;
   /** Why it missed out, for the waitlist. */
-  skippedBecause?: "no_votes" | "over_budget";
+  skippedBecause?: "no_votes" | "over_budget" | "pool_full";
 }
 
 export interface SelectionOptions {
   budgetCents: number;
-  /** Ceiling on the unit price of a guaranteed pick. */
+  /** Ceiling on the unit price of ONE guaranteed pick. */
   mustHaveCapCents: number;
+  /**
+   * Ceiling on what ALL guaranteed picks may take together.
+   *
+   * The per-person cap alone does not bound the total: fifteen people each
+   * picking at the cap would eat three quarters of a cycle before a single
+   * vote was counted. This is a sub-limit of `budgetCents`, not extra money,
+   * and anything that does not fit falls through to the vote rather than
+   * being dropped. Omit it for no pool limit.
+   */
+  mustHavePoolCents?: number;
 }
 
 export interface SelectionResult {
@@ -86,8 +96,10 @@ function votesPerDollar(c: Candidate): number {
 
 export function selectOrder(
   candidates: readonly Candidate[],
-  { budgetCents, mustHaveCapCents }: SelectionOptions,
+  { budgetCents, mustHaveCapCents, mustHavePoolCents }: SelectionOptions,
 ): SelectionResult {
+  // The pool can never exceed the budget it is carved out of.
+  let promisePool = Math.min(mustHavePoolCents ?? budgetCents, budgetCents);
   const funded: SelectionLine[] = [];
   const waitlist: SelectionLine[] = [];
   let remaining = budgetCents;
@@ -124,17 +136,43 @@ export function selectOrder(
       (a, b) =>
         b.mustHaveCount - a.mustHaveCount ||
         a.unitPriceCents - b.unitPriceCents ||
-        b.voteCount - a.voteCount ||
+        /*
+         * Fewer votes first, which looks backwards and is not. A promise is
+         * only worth anything to an item that cannot win the vote; a popular
+         * pick spilled out of the pool still gets bought on votes, while an
+         * unpopular one spilled out of the pool gets nothing. So when the
+         * pool is tight, spend it where it is actually load-bearing.
+         */
+        a.voteCount - b.voteCount ||
         byName(a, b),
     );
   const promisedIds = new Set(promised.map((c) => c.requestId));
+  /** Why a promise lost its guarantee, for the waitlist to explain. */
+  const spilledBecause = new Map<string, "pool_full" | "over_budget">();
 
+  /*
+   * Picks that do not fit the pool are NOT waitlisted here -- they drop into
+   * the voted pass below and compete normally, exactly as an over-cap pick
+   * does. Losing the guarantee should not mean losing the request.
+   */
   for (const c of promised) {
     const lineTotal = c.unitPriceCents;
-    if (lineTotal > remaining) {
-      waitlist.push(line(c, 1, lineTotal, "must_have", 0, false, "over_budget"));
+    if (lineTotal > promisePool || lineTotal > remaining) {
+      // Dropping it from the promised set is what sends it to the vote.
+      promisedIds.delete(c.requestId);
+      /*
+       * Budget first: with no pool configured the two limits are the same
+       * number, and blaming a "full pool" for what is really an empty
+       * budget would send people looking for a setting that is not the
+       * problem.
+       */
+      spilledBecause.set(
+        c.requestId,
+        lineTotal > remaining ? "over_budget" : "pool_full",
+      );
       continue;
     }
+    promisePool -= lineTotal;
     remaining -= lineTotal;
     mustHaveCents += lineTotal;
     funded.push(line(c, 1, lineTotal, "must_have", funded.length + 1, true));
@@ -157,7 +195,12 @@ export function selectOrder(
   for (const c of contested) {
     const lineTotal = c.unitPriceCents * c.quantity;
     if (c.voteCount === 0) {
-      waitlist.push(line(c, c.quantity, lineTotal, "voted", 0, false, "no_votes"));
+      /*
+       * "No votes" would be a lie for somebody's guaranteed pick: they did
+       * say they wanted it, the allowance just ran out before reaching them.
+       */
+      const why = spilledBecause.get(c.requestId) ?? "no_votes";
+      waitlist.push(line(c, c.quantity, lineTotal, "voted", 0, false, why));
       continue;
     }
     if (lineTotal > remaining) {
