@@ -12,6 +12,7 @@ import { parseMoneyToCents } from "@/lib/money.ts";
 import { lookupProduct, storeFromUrl } from "@/lib/product-link.ts";
 import { readSnackFromPhoto } from "@/lib/photo-import.ts";
 import { ALL_CATEGORIES, kindForCategory } from "@/lib/categories.ts";
+import { classifyItem } from "@/lib/categorize-ai.ts";
 
 /**
  * Every action re-checks who is calling and what state the cycle is in.
@@ -88,6 +89,17 @@ export async function addItem(_prev: ActionResult, formData: FormData): Promise<
   }
   const data = parsed.data;
 
+  /*
+   * "other" is what the form sits on when nobody touches the menu, and it
+   * counts as food -- so a hand-added pack of paper towels used to be billed
+   * to the snack budget. Treat it as "not chosen" and work it out from the
+   * name instead.
+   */
+  const category =
+    data.category === "other"
+      ? await classifyItem(data.name, data.brand, data.packSize)
+      : data.category;
+
   const [created] = await db
     .insert(items)
     .values({
@@ -96,8 +108,8 @@ export async function addItem(_prev: ActionResult, formData: FormData): Promise<
       store: data.store,
       // The category decides which pot it comes out of, so there is no
       // separate switch to get wrong.
-      kind: kindForCategory(data.category),
-      category: data.category,
+      kind: kindForCategory(category),
+      category,
       packSize: data.packSize ?? null,
       unitCount: data.unitCount,
       priceCents: data.priceCents,
