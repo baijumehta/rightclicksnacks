@@ -12,7 +12,7 @@ import "server-only";
  * opened, which is a real problem. So every path returns a result instead.
  */
 
-export type ReminderKind = "voting_open" | "last_call";
+export type ReminderKind = "voting_open" | "countdown" | "last_call";
 
 export interface TeamsMessage {
   kind: ReminderKind;
@@ -101,32 +101,55 @@ const APP_URL = "https://snacks.rclick.com";
 const compose = (title: string, text: string) =>
   `<b>${title}</b><br><br>${text}<br><br><a href="${APP_URL}">${APP_URL}</a>`;
 
-export function votingOpenMessage(
-  cycleLabel: string,
-  votesEach: number,
-  capText: string,
-  closesText: string,
-): TeamsMessage {
-  const title = `🗳️ Voting is open for the ${cycleLabel} snack order`;
-  const text =
-    `You have ${votesEach} votes, plus one guaranteed pick up to ${capText} ` +
-    `that gets bought whether or not anyone else votes for it. ` +
-    `Closes ${closesText}.`;
-  return { kind: "voting_open", title, text, url: APP_URL, message: compose(title, text) };
+export interface ReminderFacts {
+  cycleLabel: string;
+  /** Whole days until the order goes in. 1 means it closes tomorrow. */
+  daysLeft: number;
+  votesEach: number;
+  capText: string;
+  voted: number;
+  total: number;
 }
 
-export function lastCallMessage(
-  cycleLabel: string,
-  voted: number,
-  total: number,
-  closesText: string,
-): TeamsMessage {
+/**
+ * One post per day of voting, and each one says something different.
+ *
+ * Repeating the same words three times is how a chat gets muted, so the first
+ * post explains the rules, the middle ones report turnout, and the last one
+ * is short and pointed. Turnout does more work than any amount of urgency:
+ * "9 still to go" is information, "ACT NOW" is noise.
+ */
+export function reminderMessage(facts: ReminderFacts): TeamsMessage {
+  const { cycleLabel, daysLeft, votesEach, capText, voted, total } = facts;
   const missing = Math.max(0, total - voted);
-  const title = `⏰ Last call — ${cycleLabel} snack order closes ${closesText}`;
+  const turnout =
+    total > 0 ? `${voted} of ${total} ${voted === 1 ? "has" : "have"} voted` : "";
+
+  // The first day: nobody has done anything yet, so explain rather than count.
+  if (daysLeft >= 3) {
+    const title = `🗳️ Voting is open for the ${cycleLabel} snack order`;
+    const text =
+      `You have ${votesEach} votes, plus one guaranteed pick up to ${capText} ` +
+      `that gets bought whether or not anyone else votes for it. ` +
+      `Closes in ${daysLeft} days.`;
+    return { kind: "voting_open", title, text, url: APP_URL, message: compose(title, text) };
+  }
+
+  if (daysLeft === 2) {
+    const title = `🗳️ ${cycleLabel} snack order — voting closes in 2 days`;
+    const text =
+      missing === 0
+        ? `${turnout}. Nothing left to do.`
+        : `${turnout}, so ${missing} still to go. ` +
+          `An unused guaranteed pick is a wasted one.`;
+    return { kind: "countdown", title, text, url: APP_URL, message: compose(title, text) };
+  }
+
+  const title = `⏰ Last call — ${cycleLabel} snack order closes tomorrow`;
   const text =
     missing === 0
-      ? `Everyone has voted. Nothing to do — the order goes in ${closesText}.`
-      : `${voted} of ${total} have voted, so ${missing} still to go. ` +
-        `Takes about a minute, and an unused guaranteed pick is a wasted one.`;
+      ? `${turnout}. Nothing to do — the order goes in tomorrow.`
+      : `${turnout}. Last chance for the other ${missing}: about a minute, ` +
+        `and it decides what turns up on the shelf.`;
   return { kind: "last_call", title, text, url: APP_URL, message: compose(title, text) };
 }

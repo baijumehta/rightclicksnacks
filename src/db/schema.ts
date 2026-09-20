@@ -123,10 +123,15 @@ export const cycles = pgTable(
     budgetCents: integer("budget_cents").notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
     /**
-     * When each Teams reminder went out. Null means not yet sent, and that
-     * is the whole idempotency story: the nightly roll is meant to be safe
-     * to run twice, and without these a double run would post twice.
+     * The days a Teams reminder has already gone out, as `YYYY-MM-DD`.
+     *
+     * One post per day of voting, so this is a set of days rather than a
+     * flag per message -- it holds however long the voting window is, and
+     * keeps working if that setting changes. It is also the idempotency
+     * story: the nightly roll is meant to be safe to run twice, and a day
+     * already in here is a day already posted.
      */
+    remindedOn: text("reminded_on").array().notNull().default([]),
     votingOpenNotifiedAt: timestamp("voting_open_notified_at", { withTimezone: true }),
     lastCallNotifiedAt: timestamp("last_call_notified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

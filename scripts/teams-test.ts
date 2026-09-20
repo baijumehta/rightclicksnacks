@@ -12,11 +12,10 @@
  * Point the flow at a chat containing only you until the wording is right.
  */
 import "./env.ts";
-import {
-  lastCallMessage, notifyTeams, teamsConfigured, teamsTarget, votingOpenMessage,
-} from "../src/lib/teams.ts";
+import { notifyTeams, reminderMessage, teamsConfigured, teamsTarget } from "../src/lib/teams.ts";
 
-const which = process.argv[2] === "last-call" ? "last-call" : "voting-open";
+// Which day of voting to preview: 3, 2 or 1 day left.
+const daysLeft = Number(process.argv[2] ?? 3);
 
 if (!teamsConfigured()) {
   console.error(
@@ -26,10 +25,14 @@ if (!teamsConfigured()) {
   process.exit(1);
 }
 
-const message =
-  which === "last-call"
-    ? lastCallMessage("Oct 1", 6, 15, "tomorrow")
-    : votingOpenMessage("Oct 1", 5, "$15.00", "Wednesday");
+const message = reminderMessage({
+  cycleLabel: "Oct 1",
+  daysLeft,
+  votesEach: 5,
+  capText: "$15.00",
+  voted: 6,
+  total: 15,
+});
 
 console.log(`target:  ${teamsTarget()}`);
 console.log(`kind:    ${message.kind}\n`);

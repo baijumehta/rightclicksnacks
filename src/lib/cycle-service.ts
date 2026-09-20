@@ -6,13 +6,13 @@ import {
   type Cycle, type CycleStatus,
 } from "@/db/schema.ts";
 import {
-  addDays, budgetMonth, cycleBudgetCents, cycleWindowContaining, cycleWindowFor,
+  budgetMonth, cycleBudgetCents, cycleWindowContaining, cycleWindowFor,
   daysBetween, statusOn, today, type IsoDate,
 } from "./cycles.ts";
 import { selectOrder, type Candidate, type SelectionResult } from "./selection.ts";
 import { getSettings, OFFICE_TIMEZONE } from "./settings.ts";
 import { formatCents } from "./money.ts";
-import { lastCallMessage, notifyTeams, teamsConfigured, votingOpenMessage } from "./teams.ts";
+import { notifyTeams, reminderMessage, teamsConfigured } from "./teams.ts";
 
 /* ------------------------------------------------------------------ */
 /* Finding and creating cycles                                         */
@@ -179,18 +179,6 @@ export function poolCentsFor(budgetCents: number, percent: number): number {
 /* Reminders                                                           */
 /* ------------------------------------------------------------------ */
 
-/** "Wednesday", or "tomorrow" when that is clearer than a weekday name. */
-function friendlyDay(iso: IsoDate, relativeTo: IsoDate): string {
-  const gap = daysBetween(relativeTo, iso);
-  if (gap === 0) return "today";
-  if (gap === 1) return "tomorrow";
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: "UTC",
-  });
-}
-
 /** How many people have voted, and how many could. */
 async function turnout(cycleId: string): Promise<{ voted: number; total: number }> {
   const [[votedRow], [totalRow]] = await Promise.all([
@@ -204,53 +192,49 @@ async function turnout(cycleId: string): Promise<{ voted: number; total: number 
 }
 
 /**
- * Post the reminders this day calls for.
+ * Post today's reminder, if one is due.
  *
- * Each one is stamped on the cycle once sent, so running the roll twice in a
- * day cannot post twice. A send that fails leaves the stamp unset and will be
- * retried tomorrow -- which is the right way round for a nudge, and why the
- * stamp is written after the send rather than before.
+ * One per day of voting: with the window at three days that is "closes in 3
+ * days", "in 2 days", "tomorrow". Which day it is decides the wording, so a
+ * longer window just means more middle days rather than new code.
+ *
+ * The day is recorded only once the post has actually gone out, so a failed
+ * send is retried tomorrow rather than silently marked done -- and a day
+ * already recorded is a day already posted, which is what makes running the
+ * roll twice harmless.
  */
 async function sendDueReminders(cycle: Cycle, day: IsoDate): Promise<string[]> {
   if (!teamsConfigured()) return [];
-  const sent: string[] = [];
+  if (cycle.status !== "voting") return [];
+  if (cycle.remindedOn.includes(day)) return [];
+
+  const daysLeft = daysBetween(day, cycle.closesOn);
+  // Nothing to count down to once the order day has arrived or passed.
+  if (daysLeft < 1) return [];
+
   const config = await getSettings();
+  const { voted, total } = await turnout(cycle.id);
 
-  if (cycle.status === "voting" && !cycle.votingOpenNotifiedAt) {
-    const result = await notifyTeams(
-      votingOpenMessage(
-        cycle.label,
-        config.votesPerPerson,
-        formatCents(config.mustHaveCapCents),
-        friendlyDay(cycle.closesOn, day),
-      ),
-    );
-    if (result.sent) {
-      await db
-        .update(cycles)
-        .set({ votingOpenNotifiedAt: new Date() })
-        .where(eq(cycles.id, cycle.id));
-      sent.push(`voting_open:${cycle.label}`);
-    }
+  const result = await notifyTeams(
+    reminderMessage({
+      cycleLabel: cycle.label,
+      daysLeft,
+      votesEach: config.votesPerPerson,
+      capText: formatCents(config.mustHaveCapCents),
+      voted,
+      total,
+    }),
+  );
+  if (!result.sent) {
+    console.error(`Teams reminder for ${cycle.label} not sent: ${result.reason}`);
+    return [];
   }
 
-  // The day before the order goes in, and only while voting is still open.
-  const lastCallDay = addDays(cycle.closesOn, -1);
-  if (cycle.status === "voting" && day >= lastCallDay && !cycle.lastCallNotifiedAt) {
-    const { voted, total } = await turnout(cycle.id);
-    const result = await notifyTeams(
-      lastCallMessage(cycle.label, voted, total, friendlyDay(cycle.closesOn, day)),
-    );
-    if (result.sent) {
-      await db
-        .update(cycles)
-        .set({ lastCallNotifiedAt: new Date() })
-        .where(eq(cycles.id, cycle.id));
-      sent.push(`last_call:${cycle.label}`);
-    }
-  }
-
-  return sent;
+  await db
+    .update(cycles)
+    .set({ remindedOn: [...cycle.remindedOn, day] })
+    .where(eq(cycles.id, cycle.id));
+  return [`${cycle.label}: ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`];
 }
 
 /* ------------------------------------------------------------------ */

@@ -1,0 +1,1 @@
+ALTER TABLE "cycles" ADD COLUMN "reminded_on" text[] DEFAULT '{}' NOT NULL;
