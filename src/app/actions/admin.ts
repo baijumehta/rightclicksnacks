@@ -111,6 +111,7 @@ export async function rollNow(_prev: ActionResult): Promise<ActionResult> {
     result.openedVoting.length ? `opened voting on ${result.openedVoting.join(", ")}` : "",
     result.closed.length ? `closed ${result.closed.join(", ")}` : "",
     result.created.length ? `started ${result.created.join(", ")}` : "",
+    result.reminded.length ? `posted ${result.reminded.length} Teams reminder${result.reminded.length === 1 ? "" : "s"}` : "",
   ].filter(Boolean);
   return ok(parts.length ? `Done: ${parts.join("; ")}.` : "Everything was already up to date.");
 }

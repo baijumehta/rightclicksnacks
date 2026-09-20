@@ -122,6 +122,13 @@ export const cycles = pgTable(
      */
     budgetCents: integer("budget_cents").notNull(),
     closedAt: timestamp("closed_at", { withTimezone: true }),
+    /**
+     * When each Teams reminder went out. Null means not yet sent, and that
+     * is the whole idempotency story: the nightly roll is meant to be safe
+     * to run twice, and without these a double run would post twice.
+     */
+    votingOpenNotifiedAt: timestamp("voting_open_notified_at", { withTimezone: true }),
+    lastCallNotifiedAt: timestamp("last_call_notified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

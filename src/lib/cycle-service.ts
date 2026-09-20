@@ -2,15 +2,17 @@ import "server-only";
 import { and, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import {
-  cycles, items, mustHaves, orderLines, requests, votes,
+  cycles, items, mustHaves, orderLines, requests, users, votes,
   type Cycle, type CycleStatus,
 } from "@/db/schema.ts";
 import {
-  budgetMonth, cycleBudgetCents, cycleWindowContaining, cycleWindowFor,
-  statusOn, today, type IsoDate,
+  addDays, budgetMonth, cycleBudgetCents, cycleWindowContaining, cycleWindowFor,
+  daysBetween, statusOn, today, type IsoDate,
 } from "./cycles.ts";
 import { selectOrder, type Candidate, type SelectionResult } from "./selection.ts";
 import { getSettings, OFFICE_TIMEZONE } from "./settings.ts";
+import { formatCents } from "./money.ts";
+import { lastCallMessage, notifyTeams, teamsConfigured, votingOpenMessage } from "./teams.ts";
 
 /* ------------------------------------------------------------------ */
 /* Finding and creating cycles                                         */
@@ -99,6 +101,7 @@ export interface RollResult {
   openedVoting: string[];
   closed: string[];
   created: string[];
+  reminded: string[];
 }
 
 /**
@@ -111,7 +114,7 @@ export interface RollResult {
 export async function rollCycles(day?: IsoDate): Promise<RollResult> {
   const config = await getSettings();
   const now = day ?? today(OFFICE_TIMEZONE);
-  const result: RollResult = { day: now, openedVoting: [], closed: [], created: [] };
+  const result: RollResult = { day: now, openedVoting: [], closed: [], created: [], reminded: [] };
 
   const open = await db
     .select()
@@ -147,12 +150,107 @@ export async function rollCycles(day?: IsoDate): Promise<RollResult> {
     result.created.push(current.label);
   }
 
+  /*
+   * Reminders last, re-reading the cycles so a status just changed above is
+   * reflected, and wrapped so a Teams outage can never stop voting opening.
+   * Advancing the cycle is the job; the nudge is a courtesy.
+   */
+  try {
+    const live = await db
+      .select()
+      .from(cycles)
+      .where(inArray(cycles.status, ["collecting", "voting"]));
+    for (const cycle of live) {
+      result.reminded.push(...(await sendDueReminders(cycle, now)));
+    }
+  } catch (error) {
+    console.error("Teams reminder failed, cycle roll unaffected:", error);
+  }
+
   return result;
 }
 
 /** The guaranteed-pick allowance for a cycle, in cents. */
 export function poolCentsFor(budgetCents: number, percent: number): number {
   return Math.floor((budgetCents * Math.min(Math.max(percent, 0), 100)) / 100);
+}
+
+/* ------------------------------------------------------------------ */
+/* Reminders                                                           */
+/* ------------------------------------------------------------------ */
+
+/** "Wednesday", or "tomorrow" when that is clearer than a weekday name. */
+function friendlyDay(iso: IsoDate, relativeTo: IsoDate): string {
+  const gap = daysBetween(relativeTo, iso);
+  if (gap === 0) return "today";
+  if (gap === 1) return "tomorrow";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+}
+
+/** How many people have voted, and how many could. */
+async function turnout(cycleId: string): Promise<{ voted: number; total: number }> {
+  const [[votedRow], [totalRow]] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(distinct ${votes.userId})` })
+      .from(votes)
+      .where(eq(votes.cycleId, cycleId)),
+    db.select({ n: sql<number>`count(*)` }).from(users).where(eq(users.isActive, true)),
+  ]);
+  return { voted: Number(votedRow?.n ?? 0), total: Number(totalRow?.n ?? 0) };
+}
+
+/**
+ * Post the reminders this day calls for.
+ *
+ * Each one is stamped on the cycle once sent, so running the roll twice in a
+ * day cannot post twice. A send that fails leaves the stamp unset and will be
+ * retried tomorrow -- which is the right way round for a nudge, and why the
+ * stamp is written after the send rather than before.
+ */
+async function sendDueReminders(cycle: Cycle, day: IsoDate): Promise<string[]> {
+  if (!teamsConfigured()) return [];
+  const sent: string[] = [];
+  const config = await getSettings();
+
+  if (cycle.status === "voting" && !cycle.votingOpenNotifiedAt) {
+    const result = await notifyTeams(
+      votingOpenMessage(
+        cycle.label,
+        config.votesPerPerson,
+        formatCents(config.mustHaveCapCents),
+        friendlyDay(cycle.closesOn, day),
+      ),
+    );
+    if (result.sent) {
+      await db
+        .update(cycles)
+        .set({ votingOpenNotifiedAt: new Date() })
+        .where(eq(cycles.id, cycle.id));
+      sent.push(`voting_open:${cycle.label}`);
+    }
+  }
+
+  // The day before the order goes in, and only while voting is still open.
+  const lastCallDay = addDays(cycle.closesOn, -1);
+  if (cycle.status === "voting" && day >= lastCallDay && !cycle.lastCallNotifiedAt) {
+    const { voted, total } = await turnout(cycle.id);
+    const result = await notifyTeams(
+      lastCallMessage(cycle.label, voted, total, friendlyDay(cycle.closesOn, day)),
+    );
+    if (result.sent) {
+      await db
+        .update(cycles)
+        .set({ lastCallNotifiedAt: new Date() })
+        .where(eq(cycles.id, cycle.id));
+      sent.push(`last_call:${cycle.label}`);
+    }
+  }
+
+  return sent;
 }
 
 /* ------------------------------------------------------------------ */
