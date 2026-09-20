@@ -64,7 +64,23 @@ export async function notifyTeams(message: TeamsMessage): Promise<SendResult> {
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
-      return { sent: false, reason: `HTTP ${response.status} ${detail.slice(0, 120)}` };
+      /*
+       * Newer Power Platform environments hand out a "direct API" URL that
+       * wants a bearer token, rather than the classic signed logic.azure.com
+       * one that authenticates itself. The raw message says "OAuth scheme
+       * required", which does not hint at the fix: it is a trigger setting,
+       * not anything wrong with the request.
+       */
+      if (response.status === 401 && /DirectApiAuthorization|OAuth/i.test(detail)) {
+        return {
+          sent: false,
+          reason:
+            "Power Automate wants an OAuth token for this URL. In the flow's " +
+            'HTTP trigger set "Who Can Trigger The Flow?" to "Anyone", save, and ' +
+            "copy the new URL -- it should be a logic.azure.com one ending in a sig= parameter.",
+        };
+      }
+      return { sent: false, reason: `HTTP ${response.status} ${detail.slice(0, 160)}` };
     }
     return { sent: true };
   } catch (error) {
