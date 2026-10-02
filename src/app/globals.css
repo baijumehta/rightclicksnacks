@@ -117,6 +117,24 @@
     --ink: #EEF5F9;
     --muted: #9FB4C2;
 
+    /*
+     * rc-tokens.css carries bare h1-h4 / p / a rules that read --fg-1,
+     * --fg-2 and --fg-link directly, and it only ever defines light values
+     * for them. It is also imported unlayered, so those rules outrank
+     * Tailwind's utilities -- which together meant every heading rendered
+     * navy on a navy card in dark mode: #0D273C on #0D273C, 1.00:1,
+     * invisible. Verified on the deployed site before fixing.
+     *
+     * Overriding the three reachable tokens here repairs dark mode without
+     * touching the layer order, so light mode renders exactly as it did.
+     * The deeper repair is importing that file into the base layer so the
+     * utilities win again -- that resizes type on every page, so it is a
+     * deliberate separate change, not a side effect of this one.
+     */
+    --fg-1: #EEF5F9; /* h1-h4 */
+    --fg-2: #9FB4C2; /* p */
+    --fg-link: var(--blue-300); /* a */
+
     --accent: var(--blue-300);
     --accent-fill: var(--blue-500);
     --accent-hover: var(--blue-400);
@@ -142,6 +160,11 @@
   --line: var(--navy-700);
   --ink: #EEF5F9;
   --muted: #9FB4C2;
+
+  /* See the matching block above — keep these two in sync. */
+  --fg-1: #EEF5F9; /* h1-h4 */
+  --fg-2: #9FB4C2; /* p */
+  --fg-link: var(--blue-300); /* a */
 
   --accent: var(--blue-300);
   --accent-fill: var(--blue-500);

@@ -12,3 +12,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Sub-agent sweep state (manifest, findings, notes).
+.agent-audit/
