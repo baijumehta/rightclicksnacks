@@ -9,9 +9,11 @@ import { inputStyles } from "@/components/ui.tsx";
 export function ActualCell({
   lineId,
   actualCents,
+  itemName,
 }: {
   lineId: string;
   actualCents: number | null;
+  itemName: string;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -21,7 +23,7 @@ export function ActualCell({
         type="button"
         onClick={() => setEditing(true)}
         className="no-print tnum w-24 rounded-lg px-2 py-1 text-right text-sm hover:bg-surface-2"
-        title="What it actually cost"
+        aria-label={`Record what ${itemName} actually cost${actualCents == null ? "" : `, currently ${(actualCents / 100).toFixed(2)}`}`}
       >
         {actualCents == null ? (
           <span className="text-muted">add actual</span>
@@ -39,6 +41,7 @@ export function ActualCell({
         name="actual"
         autoFocus
         inputMode="decimal"
+        aria-label={`Actual cost of ${itemName}`}
         placeholder="0.00"
         defaultValue={actualCents == null ? "" : (actualCents / 100).toFixed(2)}
         className={`${inputStyles} text-right`}

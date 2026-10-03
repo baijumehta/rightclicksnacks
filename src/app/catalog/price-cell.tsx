@@ -12,7 +12,15 @@ const EMPTY: ActionResult = { ok: true };
  * chore that keeps the budget meaningful, so it is one click rather than a
  * trip to an edit page.
  */
-export function PriceCell({ itemId, priceCents }: { itemId: string; priceCents: number }) {
+export function PriceCell({
+  itemId,
+  priceCents,
+  itemName,
+}: {
+  itemId: string;
+  priceCents: number;
+  itemName: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [result, save, saving] = useActionState(updatePrice, EMPTY);
 
@@ -23,7 +31,7 @@ export function PriceCell({ itemId, priceCents }: { itemId: string; priceCents: 
           type="button"
           onClick={() => setEditing(true)}
           className="tnum rounded-lg px-2 py-1 text-sm font-medium hover:bg-surface-2"
-          title="Correct this price"
+          aria-label={`Correct the price of ${itemName}, currently ${formatCents(priceCents)}`}
         >
           {formatCents(priceCents)}
         </button>
@@ -31,10 +39,10 @@ export function PriceCell({ itemId, priceCents }: { itemId: string; priceCents: 
           <input type="hidden" name="itemId" value={itemId} />
           <button
             type="submit"
-            className="rounded-lg px-1.5 py-1 text-xs text-muted hover:bg-surface-2 hover:text-good"
-            title="Still right — reset the staleness clock"
+            className="rounded-lg px-2 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-good"
+            aria-label={`Confirm ${itemName} is still ${formatCents(priceCents)}`}
           >
-            ✓
+            <span aria-hidden>✓</span>
           </button>
         </form>
       </div>
@@ -52,6 +60,9 @@ export function PriceCell({ itemId, priceCents }: { itemId: string; priceCents: 
         name="price"
         autoFocus
         inputMode="decimal"
+        aria-label={`Price for ${itemName}`}
+        aria-invalid={result.message && !result.ok ? true : undefined}
+        aria-describedby={result.message && !result.ok ? `price-error-${itemId}` : undefined}
         defaultValue={(priceCents / 100).toFixed(2)}
         className={`${inputStyles} w-24`}
         onKeyDown={(e) => {
@@ -62,7 +73,9 @@ export function PriceCell({ itemId, priceCents }: { itemId: string; priceCents: 
         {saving ? "…" : "Save"}
       </button>
       {result.message && !result.ok ? (
-        <span className="text-xs text-bad">{result.message}</span>
+        <span id={`price-error-${itemId}`} role="alert" className="text-xs text-bad">
+          {result.message}
+        </span>
       ) : null}
     </form>
   );

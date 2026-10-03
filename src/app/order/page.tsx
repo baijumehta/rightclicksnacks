@@ -197,7 +197,11 @@ async function ShoppingList(cycleId?: string) {
                   <span className="tnum w-20 text-right font-medium">
                     {formatCents(line.lineTotalCents)}
                   </span>
-                  <ActualCell lineId={line.id} actualCents={line.actualCents} />
+                  <ActualCell
+                    lineId={line.id}
+                    actualCents={line.actualCents}
+                    itemName={item.name}
+                  />
                 </li>
               ))}
             </ul>

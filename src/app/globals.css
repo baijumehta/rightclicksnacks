@@ -1,5 +1,16 @@
 @import "tailwindcss";
-@import "./rc-tokens.css";
+/*
+ * `layer(base)` matters. The design system's file carries bare h1-h4, p and a
+ * rules, which its own header marks as opt-in via `.rc-prose` or a scope.
+ * Imported unlayered they sat above every Tailwind layer and won outright: a
+ * `text-xl` heading rendered at 48px, `text-bad` on a paragraph did nothing,
+ * and `<a className="underline">` had no underline.
+ *
+ * In `base` they are still ahead of `theme` -- so the deliberate --radius-*
+ * and --shadow-* overrides keep working -- but behind `utilities`, so the
+ * classes the components actually write win again.
+ */
+@import "./rc-tokens.css" layer(base);
 
 /*
  * `dark:` has to follow OUR switch, not the OS alone -- otherwise a visitor

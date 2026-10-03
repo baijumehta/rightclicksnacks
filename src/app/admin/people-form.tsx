@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { inviteUser } from "../actions/admin.ts";
 import type { ActionResult } from "../actions/snacks.ts";
-import { Notice, buttonStyles, inputStyles } from "@/components/ui.tsx";
+import { Field, Notice, buttonStyles, inputStyles } from "@/components/ui.tsx";
 
 const EMPTY: ActionResult = { ok: true };
 
@@ -14,19 +14,24 @@ export function PeopleForm() {
   return (
     <div className="space-y-3 border-b border-line px-4 py-4 sm:px-5">
       <form action={invite} className="flex flex-wrap items-end gap-2">
+        {/* These used to be bare <label> elements with no htmlFor and no id on
+            the input, so both fields were unlabelled to a screen reader. Field
+            wraps the control, which associates them. */}
         <div className="min-w-40 flex-1">
-          <label className="mb-1 block text-sm font-medium">Name</label>
-          <input name="name" required placeholder="Sam Rivera" className={inputStyles} />
+          <Field label="Name">
+            <input name="name" required placeholder="Sam Rivera" className={inputStyles} />
+          </Field>
         </div>
         <div className="min-w-56 flex-1">
-          <label className="mb-1 block text-sm font-medium">Work email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="sam@rclick.com"
-            className={inputStyles}
-          />
+          <Field label="Work email">
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="sam@rclick.com"
+              className={inputStyles}
+            />
+          </Field>
         </div>
         <button type="submit" disabled={inviting} className={buttonStyles.secondary}>
           {inviting ? "Adding…" : "Add"}

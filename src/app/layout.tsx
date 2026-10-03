@@ -41,6 +41,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className="min-h-dvh">
+        {/* Every page puts the logo, five nav links, three theme buttons and
+            sign-out ahead of the content; this is the way past them. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent-fill focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-accent"
+        >
+          Skip to content
+        </a>
         <div className="brand-rule h-1 w-full" />
         <header className="no-print border-b border-line bg-surface">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
@@ -68,7 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
             {user ? (
               <>
-                <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <nav aria-label="Main" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   {NAV.map((link) => (
                     <Link
                       key={link.href}
@@ -101,7 +109,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             )}
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">{children}</main>
+        <main id="main" className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
+          {children}
+        </main>
       </body>
     </html>
   );

@@ -63,7 +63,14 @@ export function Ballot({
       })
     : food;
 
-  const cutAfter = preview.funded.length;
+  /*
+   * Count only the FOOD that got funded. `preview.funded` leads with every
+   * supply (selection.ts funds those first), but `ordered` holds food alone --
+   * so using the raw length pushed the cut line past the end of the list and
+   * it silently stopped rendering on any cycle with supplies on it, leaving
+   * dimmed rows with nothing to explain them.
+   */
+  const cutAfter = preview.funded.filter((l) => l.reason !== "supply").length;
 
   return (
     <ul className="divide-y divide-line">
@@ -185,6 +192,9 @@ function Row({
               Price may be old
             </Badge>
           ) : null}
+          {/* Opacity alone fails 1.4.1 and the dimmed text drops under AA, so
+              the state is stated as well as shown. */}
+          {!isFunded ? <Badge tone="neutral">Below the line</Badge> : null}
         </div>
         <p className="mt-0.5 text-sm text-muted">
           <span className="tnum">{formatCents(row.unitPriceCents)}</span>
@@ -205,15 +215,28 @@ function Row({
               type="submit"
               disabled={outOfVotes}
               title={outOfVotes ? "You have used all your votes" : undefined}
+              /*
+               * Without this the whole accessible name was the vote count --
+               * a screen reader said "3, button" and nothing about which item
+               * it belonged to or whether you had already voted. The star is
+               * decorative, so `aria-pressed` carries the state instead.
+               */
+              aria-pressed={iVoted}
+              aria-label={`${iVoted ? "Remove your vote from" : "Vote for"} ${row.name}, ${
+                row.voteCount
+              } vote${row.voteCount === 1 ? "" : "s"} so far`}
               className={iVoted ? buttonStyles.primary : buttonStyles.secondary}
             >
               <span aria-hidden>{iVoted ? "★" : "☆"}</span>
-              <span className="tnum">{row.voteCount}</span>
+              <span className="tnum" aria-hidden>
+                {row.voteCount}
+              </span>
             </button>
           </form>
         ) : (
-          <span className="tnum w-10 text-right text-sm text-muted" title="Votes so far">
-            {row.voteCount > 0 ? `${row.voteCount} ★` : "—"}
+          <span className="tnum w-10 text-right text-sm text-muted">
+            <span className="sr-only">{row.voteCount} votes so far</span>
+            <span aria-hidden>{row.voteCount > 0 ? `${row.voteCount} ★` : "—"}</span>
           </span>
         )}
 
@@ -239,8 +262,12 @@ function Row({
         (row.requestedBy === user.id || user.isAdmin) ? (
           <form action={withdrawRequest}>
             <input type="hidden" name="requestId" value={row.requestId} />
-            <button type="submit" className={buttonStyles.ghost} title="Take this off the list">
-              ✕
+            <button
+              type="submit"
+              className={buttonStyles.ghost}
+              aria-label={`Take ${row.name} off the list`}
+            >
+              <span aria-hidden>✕</span>
             </button>
           </form>
         ) : null}

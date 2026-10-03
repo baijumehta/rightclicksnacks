@@ -382,3 +382,26 @@ test("no pool set means no pool limit", () => {
   );
   assert.equal(r.mustHaveCents, 3_000);
 });
+
+test("supplies lead the funded list, which the ballot's cut line depends on", () => {
+  /*
+   * src/app/ballot.tsx draws "budget runs out here" after N rows, where N is
+   * the funded FOOD count, because the list it indexes into excludes
+   * supplies. That only works while supplies stay at the front of funded[].
+   * If this ordering ever changes, that cut line silently stops rendering.
+   */
+  const r = selectOrder(
+    [
+      candidate({ requestId: "nuts", name: "nuts", voteCount: 9 }),
+      supply({ requestId: "napkins", name: "napkins" }),
+      candidate({ requestId: "bars", name: "bars", voteCount: 4 }),
+      supply({ requestId: "cups", name: "cups" }),
+    ],
+    OPTS,
+  );
+  const reasons = r.funded.map((l) => l.reason);
+  const lastSupply = reasons.lastIndexOf("supply");
+  const firstFood = reasons.findIndex((x) => x !== "supply");
+  assert.ok(lastSupply < firstFood, `supplies must precede food: ${reasons.join(",")}`);
+  assert.equal(r.funded.filter((l) => l.reason !== "supply").length, 2);
+});

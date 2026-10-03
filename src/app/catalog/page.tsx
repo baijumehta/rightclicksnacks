@@ -158,7 +158,7 @@ async function Catalog() {
                     </p>
                   </div>
 
-                  <PriceCell itemId={item.id} priceCents={item.priceCents} />
+                  <PriceCell itemId={item.id} priceCents={item.priceCents} itemName={item.name} />
 
                   <div className="no-print flex items-center gap-2">
                     <AddToList
@@ -177,9 +177,9 @@ async function Catalog() {
                       <button
                         type="submit"
                         className={buttonStyles.ghost}
-                        title="Retire this from the catalog"
+                        aria-label={`Retire ${item.name} from the catalog`}
                       >
-                        ✕
+                        <span aria-hidden>✕</span>
                       </button>
                     </form>
                   </div>

@@ -49,7 +49,9 @@ export function AddToList({
         {adding ? "Adding…" : "Add to list"}
       </button>
       {result.message && !result.ok ? (
-        <span className="max-w-48 text-xs text-bad">{result.message}</span>
+        <span role="alert" className="max-w-48 text-xs text-bad">
+          {result.message}
+        </span>
       ) : null}
     </form>
   );

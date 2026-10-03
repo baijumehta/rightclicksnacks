@@ -96,7 +96,14 @@ export function BudgetBar({
           <span className="font-normal text-muted">of {formatCents(budgetCents)}</span>
         </span>
       </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label ?? "Budget"}: ${formatCents(spentCents)} of ${formatCents(budgetCents)}`}
+        className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2"
+      >
         <div
           className={`h-full rounded-full transition-[width] duration-500 ${fill}`}
           style={{ width: `${Math.max(pct, spentCents > 0 ? 2 : 0)}%` }}
@@ -120,11 +127,10 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-semibold leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-45";
 
 export const buttonStyles = {
-  primary: `${BUTTON_BASE} border-[1.5px] border-transparent bg-accent-fill text-on-accent hover:bg-accent-hover`,
-  secondary: `${BUTTON_BASE} border-[1.5px] border-line bg-surface text-ink hover:bg-canvas`,
-  ghost: `${BUTTON_BASE} border-[1.5px] border-transparent text-accent hover:bg-accent-soft`,
-  amber: `${BUTTON_BASE} border-[1.5px] border-transparent bg-highlight text-ink hover:opacity-90`,
-  danger: `${BUTTON_BASE} border-[1.5px] border-line text-bad hover:bg-bad-soft`,
+  primary: `${BUTTON_BASE} border-[1.5px] border-transparent bg-accent-fill text-on-accent hover:bg-accent-hover active:scale-[0.98]`,
+  secondary: `${BUTTON_BASE} border-[1.5px] border-line bg-surface text-ink hover:bg-canvas active:scale-[0.98]`,
+  ghost: `${BUTTON_BASE} border-[1.5px] border-transparent text-accent hover:bg-accent-soft active:scale-[0.98]`,
+  danger: `${BUTTON_BASE} border-[1.5px] border-line text-bad hover:bg-bad-soft active:scale-[0.98]`,
 };
 
 export const inputStyles =
@@ -148,7 +154,13 @@ export function Field({
   );
 }
 
-/** Inline result of a server action, rendered above the form that produced it. */
+/**
+ * Inline result of a server action, rendered above the form that produced it.
+ *
+ * Announced, not just shown: these appear after the user has moved on from
+ * the control that caused them, so without a live region a screen-reader user
+ * never learns whether the thing worked. Failures interrupt; successes wait.
+ */
 export function Notice({ tone, children }: { tone: "good" | "bad" | "warn"; children: ReactNode }) {
   const styles = {
     good: "border-good/30 bg-good-soft text-good",
@@ -156,7 +168,12 @@ export function Notice({ tone, children }: { tone: "good" | "bad" | "warn"; chil
     warn: "border-warn/30 bg-warn-soft text-warn",
   } as const;
   return (
-    <div className={`rounded-lg border px-3 py-2 text-sm ${styles[tone]}`}>{children}</div>
+    <div
+      role={tone === "bad" ? "alert" : "status"}
+      className={`rounded-lg border px-3 py-2 text-sm ${styles[tone]}`}
+    >
+      {children}
+    </div>
   );
 }
 

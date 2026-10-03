@@ -118,6 +118,11 @@ async function Admin(myId: string) {
                   <button
                     type="submit"
                     disabled={person.id === myId && person.isAdmin}
+                    title={
+                      person.id === myId && person.isAdmin
+                        ? "You cannot remove your own admin rights — have another admin do it"
+                        : undefined
+                    }
                     className={buttonStyles.ghost}
                   >
                     {person.isAdmin ? "Remove admin" : "Make admin"}

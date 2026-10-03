@@ -108,8 +108,16 @@ async function History() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className={`tnum font-medium ${over ? "text-bad" : ""}`}>
-                    {formatCents(spent)}
+                  {/* Was colour-only, and the colour did not even apply: text-bad
+                      on a <p> lost to the design system's element rule, so an
+                      over-budget cycle looked identical to one on budget. */}
+                  <p className="tnum font-medium">
+                    <span className={over ? "text-bad" : undefined}>{formatCents(spent)}</span>
+                    {over ? (
+                      <span className="ml-1.5 align-middle">
+                        <Badge tone="bad">Over</Badge>
+                      </span>
+                    ) : null}
                   </p>
                   <p className="tnum text-xs text-muted">
                     of {formatCents(cycle.budgetCents)}
